@@ -38,7 +38,7 @@ uint32_t GetOperatorId(const GraphTile* tile, uint32_t routeid,
 namespace valhalla {
 namespace thor {
 
-constexpr uint64_t kInitialEdgeLabelCount = 200000;
+constexpr uint64_t kInitialEdgeLabelCount = 2000000;
 
 // Default constructor
 MultiModalPathAlgorithm::MultiModalPathAlgorithm()
@@ -141,7 +141,7 @@ std::vector<PathInfo> MultiModalPathAlgorithm::GetBestPath(
   if (!CanReachDestination(destination, graphreader, TravelMode::kPedestrian, pc)) {
     // Return if distance exceeds maximum distance set for the starting distance
     // of a multimodal route (TODO - add methods to costing to support this).
-    if (mindist > 2000) {
+    if (mindist > 4000) {
       // Throw an exception so the message is returned in the service
       throw valhalla_exception_t{440};
     } else {
