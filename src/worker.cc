@@ -225,7 +225,7 @@ namespace {
 	{163,R"({"code":"InvalidValue","message":"The successfully parsed query parameters are invalid."})"},
 
 	{170,R"({"code":"InvalidValue","message":"The successfully parsed query parameters are invalid."})"},
-	{171,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
+	{171,R"({"code":"NoSegment","message":"One of the supplied input coordinates could not snap to street segment."})"},
 
 	{199,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
 
@@ -273,7 +273,7 @@ namespace {
 
 	{440,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
 	{441,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
-	{442,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
+	{442,R"({"code":"NoRoute","message":"Impossible route between points"})"},
 	{443,R"({"code":"NoSegment","message":"One of the supplied input coordinates could not snap to street segment."})"},
 	{444,R"({"code":"NoSegment","message":"One of the supplied input coordinates could not snap to street segment."})"},
 	{445,R"({"code":"InvalidUrl","message":"URL string is invalid."})"},
@@ -313,6 +313,14 @@ namespace {
       //delete directions_options if it existed
       doc.RemoveMember("directions_options");
     }
+
+    auto id = rapidjson::get_optional<std::string>(doc, "/id");
+    if(id)
+      options.set_id(*id);
+
+    auto jsonp = rapidjson::get_optional<std::string>(doc, "/jsonp");
+    if(jsonp)
+      options.set_jsonp(*jsonp);
 
     auto units = rapidjson::get_optional<std::string>(doc, "/units");
     if(units) {
