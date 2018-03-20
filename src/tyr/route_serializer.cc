@@ -346,18 +346,19 @@ namespace {
         // for arrive maneuver).
         if (!arrive) {
           std::vector<std::string> classes;
-          if (node.edge().road_class() == odin::TripPath_RoadClass_kMotorway) {
-            classes.push_back("motorway");
-          }
           if (node.edge().tunnel()) {
             classes.push_back("tunnel");
-          }
-          if (node.edge().use() == odin::TripPath::Use::TripPath_Use_kFerryUse) {
-            classes.push_back("ferry");
           }
           if (maneuver.portions_toll() || node.edge().toll()) {
             classes.push_back("toll");
           }
+          if (node.edge().road_class() == odin::TripPath_RoadClass_kMotorway) {
+            classes.push_back("motorway");
+          }
+          if (node.edge().use() == odin::TripPath::Use::TripPath_Use_kFerryUse) {
+            classes.push_back("ferry");
+          }
+
           /** TODO
           if ( ) {
             classes.push_back("restricted");
@@ -488,7 +489,7 @@ namespace {
     json::MapPtr osrm_maneuver(const valhalla::odin::TripDirections::Maneuver& maneuver,
                 std::list<odin::TripPath>::const_iterator path_leg,
                 const PointLL& man_ll, const bool depart, const bool arrive,
-                const uint32_t count, const std::string mode, const std::string prev_mode) {
+                const uint32_t count, const std::string& mode, const std::string& prev_mode) {
       auto osrm_man = json::map({});
 
       // Set the location
@@ -505,7 +506,12 @@ namespace {
       uint32_t out_brg = maneuver.begin_heading();
       osrm_man->emplace("bearing_before", static_cast<uint64_t>(in_brg));
       osrm_man->emplace("bearing_after", static_cast<uint64_t>(out_brg));
-      osrm_man->emplace("modifier", turn_modifier(in_brg, out_brg));
+
+      std::string modifier;
+      if (!depart) {
+        modifier = turn_modifier(in_brg, out_brg);
+        osrm_man->emplace("modifier", modifier);
+      }
 
       // TODO - logic to convert maneuver types from Valhalla into OSRM maneuver types.
       std::string maneuver_type;
@@ -515,13 +521,20 @@ namespace {
         maneuver_type = "arrive";
       } else if (mode != prev_mode) {
         maneuver_type = "notification";
+      } else if (maneuver.type() == odin::TripDirections_Maneuver_Type_kRoundaboutEnter) {
+          maneuver_type = "roundabout";
+        // Roundabout count
+        if (maneuver.has_roundabout_exit_count()) {
+          osrm_man->emplace("exit", static_cast<uint64_t>(maneuver.roundabout_exit_count()));
+        }
+      } else if (maneuver.type() == odin::TripDirections_Maneuver_Type_kRoundaboutExit) {
+        maneuver_type = "exit roundabout";
       } else {
         // Special cases
         const auto& prior_edge = path_leg->node(idx-1).edge();
         const auto& current_edge = path_leg->node(idx).edge();
         bool new_name = maneuver.type() == odin::TripDirections_Maneuver_Type_kContinue ||
                         maneuver.type() == odin::TripDirections_Maneuver_Type_kBecomes;
-        bool roundabout = false;
         bool ramp = current_edge.use() == odin::TripPath_Use_kRampUse;
         bool fork = path_leg->node(idx).fork();
         bool merge = prior_edge.use() == odin::TripPath_Use_kRampUse &&
@@ -535,9 +548,7 @@ namespace {
         } else if (ramp) {
           maneuver_type = ramp_type(prior_edge, idx, path_leg);
         } else if (new_name) {
-          maneuver_type = "new_name";
-        } else if (roundabout) {
-          maneuver_type = "roundabout";
+          maneuver_type = "new name";
         }
 
         // Are there any intersecting edges
@@ -587,9 +598,11 @@ namespace {
           if (count > 1 && road_ends) {
             maneuver_type = "end of road";
           } else if (false_node && new_name) {
-            maneuver_type = "new_name";
+            maneuver_type = "new name";
           } else {
-            maneuver_type = "turn";
+            if (modifier != "uturn")
+              maneuver_type = "turn";
+            else maneuver_type = "continue";
           }
         }
       }
@@ -622,7 +635,7 @@ namespace {
           return "driving";
         }
         case TripDirections_TravelMode_kPedestrian: {
-          return "walk";
+          return "walking";
         }
         case TripDirections_TravelMode_kBicycle: {
           return "cycling";
@@ -634,24 +647,23 @@ namespace {
       }
     }
 
-    // Get the names and ref names
-    std::pair<std::string, std::string> names_and_refs(const valhalla::odin::TripDirections::Maneuver& maneuver,
-                  std::list<odin::TripPath>::const_iterator path_leg) {
-      std::string names, refs;
 
-      // Get names and refs at the beginning edge of the maneuver
-      uint32_t idx = maneuver.begin_path_index();
-      auto edgenames = path_leg->node(idx).edge().name();
-      auto edgerefs = path_leg->node(idx).edge().name_is_ref();
+    bool is_ref_name(const valhalla::odin::TripDirections::Maneuver& maneuver,
+                     const std::string& name,
+                     std::list<odin::TripPath>::const_iterator path_leg) {
 
-      // Lambda to check if the name is a name or ref
-      // TODO - at some point we probably want to pull is_ref into the
-      // maneuver.
-      const auto is_ref_name = [&edgenames, &edgerefs](const std::string& name) {
+      for (uint32_t i = maneuver.begin_path_index(); i < maneuver.end_path_index(); i++) {
+
+        // Get names and refs for this maneuver
+        auto edgenames = path_leg->node(i).edge().name();
+        auto edgerefs = path_leg->node(i).edge().name_is_ref();
+
+        // Check if the name is a name or ref
+        // TODO - at some point we probably want to pull is_ref into the
+        // maneuver.
         if (edgenames.size() != edgerefs.size()) {
           return true;
         }
-        auto edgename = edgenames.begin();
         auto edgeref = edgerefs.begin();
         for (const auto& edgename : edgenames) {
           if (edgename == name) {
@@ -659,12 +671,18 @@ namespace {
           }
           edgeref++;
         }
-        return true;
-      };
+      }
+      return true;
+    }
+
+    // Get the names and ref names
+    std::pair<std::string, std::string> names_and_refs(const valhalla::odin::TripDirections::Maneuver& maneuver,
+                  std::list<odin::TripPath>::const_iterator path_leg) {
+      std::string names, refs;
 
       for (const auto& name : maneuver.street_name()) {
         // Check if the name is a ref
-        if (is_ref_name(name)) {
+        if (is_ref_name(maneuver, name, path_leg)) {
           if (refs.size() > 0) {
             refs += "; ";
           }
