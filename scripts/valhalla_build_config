@@ -17,6 +17,7 @@ config = {
     'transit_bounding_box': None,
     'hierarchy': True,
     'shortcuts': True,
+    'include_driveways': True,
     'logging': {
       'type': 'std_out',
       'color': True,
@@ -215,7 +216,8 @@ help_text = {
     'transit_dir': 'Location of intermediate transit tiles created with valhalla_build_transit',
     'transit_bounding_box': 'Add comma separated bounding box values to only download transit data inside the given bounding box',
     'hierarchy': 'bool indicating whether road hierarchy is to be built - default to True',
-    'shortcuts': 'bool indicating whether shortcuts are to be builr - default to True',
+    'shortcuts': 'bool indicating whether shortcuts are to be built - default to True',
+    'include_driveways': 'bool indicating whether driveways are included - default to True',
     'logging': {
       'type': 'Type of logger either std_out or file',
       'color': 'User colored log level in std_out logger',
