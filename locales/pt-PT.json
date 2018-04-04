@@ -144,9 +144,9 @@
         "a pista de bicicleta de montanha"
       ], 
       "metric_lengths": [
-        "<KILOMETERS> kilómetros", 
-        "1 kilómetro", 
-        "meio kilómetro", 
+        "<KILOMETERS> quilómetros", 
+        "1 quilómetro", 
+        "meio quilómetro", 
         "<METERS> metros", 
         "menos que 10 metros"
       ], 
@@ -164,7 +164,7 @@
           "Continue por 300 metros."
         ], 
         "1": [
-          "Continue na Avenida dos Aliados por 3 décimos de kilómetro."
+          "Continue na Avenida dos Aliados por 3 décimos de quilómetro."
         ]
       }
     }, 
@@ -194,10 +194,10 @@
       }, 
       "example_phrases": {
         "0": [
-          "Partida: 8:02 AM."
+          "Partida: 20:02."
         ], 
         "1": [
-          "Partida: 8:02 AM de Gare do Oriente."
+          "Partida: 20:02 de Gare do Oriente."
         ]
       }
     }, 
@@ -208,10 +208,10 @@
       }, 
       "example_phrases": {
         "0": [
-          "Partida ás 8:02 AM."
+          "Partida ás 20:02."
         ], 
         "1": [
-          "Partida ás 8:02 AM de Gare do Oriente."
+          "Partida ás 20:02 de Gare do Oriente."
         ]
       }
     }, 
@@ -1086,9 +1086,9 @@
         "pista de bicileta de montanha"
       ], 
       "metric_lengths": [
-        "<KILOMETERS> kilómetros", 
-        "1 kilómetro", 
-        "meio kilómetro", 
+        "<KILOMETERS> quilómetros", 
+        "1 quilómetro", 
+        "meio quilómetro", 
         "<METERS> metros", 
         "menos que 10 metros"
       ], 
@@ -1104,11 +1104,11 @@
       "example_phrases": {
         "0": [
           "Continue por 300 metros.", 
-          "Continue por 9 kilómetros."
+          "Continue por 9 quilómetros."
         ], 
         "1": [
-          "Continue na Avenida de Brasília por 6.2 kilómetros.", 
-          "Continue na Avenida de Brasília por 1 décimo de kilómetro."
+          "Continue na Avenida de Brasília por 6.2 quilómetros.", 
+          "Continue na Avenida de Brasília por 1 décimo de quilómetro."
         ]
       }
     }, 
@@ -1440,9 +1440,9 @@
         "pista de bicileta de montanha"
       ], 
       "metric_lengths": [
-        "<KILOMETERS> kilómetros", 
-        "1 kilómetro", 
-        "meio kilómetro", 
+        "<KILOMETERS> quilómetros", 
+        "1 quilómetro", 
+        "meio quilómetro", 
         "<METERS> metros", 
         "menos que 10 metros"
       ], 
@@ -1457,18 +1457,18 @@
       ], 
       "example_phrases": {
         "0": [
-          "Siga para este por meio kilómetro.", 
-          "Siga para norte por 1 kilómetro."
+          "Siga para este por meio quilómetro.", 
+          "Siga para norte por 1 quilómetro."
         ], 
         "1": [
-          "Siga para sudoeste na Avenida 24 de Julho por 1 décimo de kilómetro."
+          "Siga para sudoeste na Avenida 24 de Julho por 1 décimo de quilómetro."
         ], 
         "2": [
           "Siga para sul na Rua do Príncipe Real."
         ], 
         "4": [
           "Conduza para este por meia milha.", 
-          "Conduza para norte por 1 kilómetro."
+          "Conduza para norte por 1 quilómetro."
         ], 
         "5": [
           "Conduza para sudoeste na Avenida 24 de Julho por 1 décimo de milha."
@@ -1478,7 +1478,7 @@
         ], 
         "8": [
           "Caminhe para este por meia milha.", 
-          "Caminhe para norte por 1 kilómetro."
+          "Caminhe para norte por 1 quilómetro."
         ], 
         "9": [
           "Caminhe para sudoeste na Avenida 24 de Julho por 1 décimo de milha."
@@ -1488,7 +1488,7 @@
         ], 
         "16": [
           "Pedale para este por meia milha.", 
-          "Pedale para norte por 1 kilómetro."
+          "Pedale para norte por 1 quilómetro."
         ], 
         "17": [
           "Pedale para sudoeste na Avenida 24 de Julho por 1 décimo de milha."
@@ -1524,8 +1524,8 @@
           "Apanhe a 302. (12 paragens)"
         ], 
         "1": [
-          "Apanhe a 3F em direção a CHELAS. (10 paragens)", 
-          "Apanhe a 405 em direção a Castleo do Queijo. (1 paragem)"
+          "Apanhe a 3F em direção a Chelas. (10 paragens)", 
+          "Apanhe a 405 em direção a Castelo do Queijo. (1 paragem)"
         ]
       }
     }, 
@@ -1769,7 +1769,7 @@
           "Apanhe a Linha Azul."
         ], 
         "1": [
-          "Apanhe a F em direção a CHELAS."
+          "Apanhe a F em direção a Chelas."
         ]
       }
     }, 
