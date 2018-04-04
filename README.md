@@ -49,7 +49,7 @@ The Valhalla organization is comprised of several library modules each responsib
 Documentation
 --------
 
-Technical documentation for the various components of the library can be found here: [docs](docs). Service API documentation as well as links to a variety of technical descriptions are provided within the [valhalla-docs](https://github.com/tpportugal/tpp_valhalla-api-docs) repository.
+Technical documentation for the various components of the library can be found here: [docs](docs). Service API documentation as well as links to a variety of technical descriptions are provided within the [valhalla-docs](https://github.com/tpportugal/tpp_valhalla_api_docs) repository.
 
 Building from Source
 --------------------
