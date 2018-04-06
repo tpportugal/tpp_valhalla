@@ -1,3 +1,5 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d75b178c15d143dd978726fbc364e154)](https://app.codacy.com/app/TPP/tpp_valhalla?utm_source=github.com&utm_medium=referral&utm_content=tpportugal/tpp_valhalla&utm_campaign=badger)
+
      ██▒   █▓ ▄▄▄       ██▓     ██░ ██  ▄▄▄       ██▓     ██▓    ▄▄▄      
     ▓██░   █▒▒████▄    ▓██▒    ▓██░ ██▒▒████▄    ▓██▒    ▓██▒   ▒████▄    
      ▓██  █▒░▒██  ▀█▄  ▒██░    ▒██▀▀██░▒██  ▀█▄  ▒██░    ▒██░   ▒██  ▀█▄  
@@ -15,9 +17,7 @@ Valhalla is an open source routing engine and accompanying libraries for use wit
 License
 -------
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d75b178c15d143dd978726fbc364e154)](https://app.codacy.com/app/TPP/tpp_valhalla?utm_source=github.com&utm_medium=referral&utm_content=tpportugal/tpp_valhalla&utm_campaign=badger)
-
-Valhalla, and all of the projects under the Valhalla organization, use the [MIT License](COPYING).
+Valhalla uses the [MIT License](COPYING).
 
 Overview
 --------
