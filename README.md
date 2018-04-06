@@ -1,3 +1,5 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d75b178c15d143dd978726fbc364e154)](https://app.codacy.com/app/TPP/tpp_valhalla?utm_source=github.com&utm_medium=referral&utm_content=tpportugal/tpp_valhalla&utm_campaign=badger)
+
      ██▒   █▓ ▄▄▄       ██▓     ██░ ██  ▄▄▄       ██▓     ██▓    ▄▄▄      
     ▓██░   █▒▒████▄    ▓██▒    ▓██░ ██▒▒████▄    ▓██▒    ▓██▒   ▒████▄    
      ▓██  █▒░▒██  ▀█▄  ▒██░    ▒██▀▀██░▒██  ▀█▄  ▒██░    ▒██░   ▒██  ▀█▄  
@@ -12,15 +14,10 @@
 
 Valhalla is an open source routing engine and accompanying libraries for use with OpenStreetMap data. Valhalla also includes tools like time+distance matrix computation, isochrones, elevation sampling, map matching and tour optimization (Travelling Salesman).
 
-Build Status
-------------
-
-[![Circle CI](https://circleci.com/gh/valhalla/valhalla.svg?style=svg)](https://circleci.com/gh/valhalla/valhalla)
-
 License
 -------
 
-Valhalla, and all of the projects under the Valhalla organization, use the [MIT License](COPYING).
+Valhalla uses the [MIT License](COPYING).
 
 Overview
 --------
@@ -39,36 +36,22 @@ Organization
 
 The Valhalla organization is comprised of several library modules each responsible for a different function. The layout of the various modules is as follows:
 
-- [Midgard](https://github.com/valhalla/valhalla/tree/master/valhalla/midgard) - Basic geographic and geometric algorithms for use in the various other projects.
-- [Baldr](https://github.com/valhalla/valhalla/tree/master/valhalla/baldr) - The base data structures for accessing and caching tiled route data.
-- [Sif](https://github.com/valhalla/valhalla/tree/master/valhalla/sif) - Library used in costing of graph nodes and edges. This can be used as input to `loki` and `thor`.
-- [Skadi](https://github.com/valhalla/valhalla/tree/master/valhalla/skadi) - Library and service for accessing elevation data. This can be used as input to `mjolnir` or as a standalone service.
-- [Mjolnir](https://github.com/valhalla/valhalla/tree/master/valhalla/mjolnir) - Tools for turning open data into Valhalla graph tiles.
-- [Loki](https://github.com/valhalla/valhalla/tree/master/valhalla/loki) - Library used to search graph tiles and correlate input locations to an entity within a tile. This correlated entity (edge or vertex) can be used as input to `thor`.
-- [Meili](https://github.com/valhalla/valhalla/tree/master/valhalla/meili) - Library used to for map-matching.
-- [Thor](https://github.com/valhalla/valhalla/tree/master/valhalla/thor) - Library used to generate a path through the graph tile hierarchy.  This path and attribution along the path can be used as input to `odin`.
-- [Odin](https://github.com/valhalla/valhalla/tree/master/valhalla/odin) - Library used to generate manoeuvres and narrative based on a path. This set of directions information can be used as input to `tyr`.
-- [Tyr](https://github.com/valhalla/valhalla/tree/master/valhalla/tyr) - Service used to handle http requests for a route communicating with all of the other valhalla APIs. The service will format output from `odin` and support json (and eventually protocol buffer) output.
-- [Tools](https://github.com/valhalla/valhalla/tree/master/src) - A set command line tools that exercise bits of functionality from the library components above and provide the basis for quality testing and performance benchmarking.
-- [Demos](https://github.com/valhalla/demos) - A set of demos which allows interacting with the service and APIs.
-- [Chef](https://github.com/valhalla/chef-valhalla) - A chef cookbook demonstrating how to deploy the valhalla stack to a virtual machine (sample vagrant file included).
+- [Midgard](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/midgard) - Basic geographic and geometric algorithms for use in the various other projects.
+- [Baldr](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/baldr) - The base data structures for accessing and caching tiled route data.
+- [Sif](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/sif) - Library used in costing of graph nodes and edges. This can be used as input to `loki` and `thor`.
+- [Skadi](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/skadi) - Library and service for accessing elevation data. This can be used as input to `mjolnir` or as a standalone service.
+- [Mjolnir](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/mjolnir) - Tools for turning open data into Valhalla graph tiles.
+- [Loki](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/loki) - Library used to search graph tiles and correlate input locations to an entity within a tile. This correlated entity (edge or vertex) can be used as input to `thor`.
+- [Meili](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/meili) - Library used to for map-matching.
+- [Thor](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/thor) - Library used to generate a path through the graph tile hierarchy.  This path and attribution along the path can be used as input to `odin`.
+- [Odin](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/odin) - Library used to generate manoeuvres and narrative based on a path. This set of directions information can be used as input to `tyr`.
+- [Tyr](https://github.com/tpportugal/tpp_valhalla/tree/master/valhalla/tyr) - Service used to handle http requests for a route communicating with all of the other valhalla APIs. The service will format output from `odin` and support json (and eventually protocol buffer) output.
+- [Tools](https://github.com/tpportugal/tpp_valhalla/tree/master/src) - A set command line tools that exercise bits of functionality from the library components above and provide the basis for quality testing and performance benchmarking.
 
 Documentation
 --------
 
-Technical documentation for the various components of the library can be found here: [docs](docs). Service API documentation as well as links to a variety of technical descriptions are provided within the [valhalla-docs](https://github.com/valhalla/valhalla-docs) repository.
-
-Get Valhalla from Personal Package Archive (PPA)
-------------------------------------------------
-
-If you are running Ubuntu (trusty or xenial) Valhalla can be installed quickly and easily via PPA. Try the following:
-
-```bash
-# grab all of the valhalla software from ppa
-sudo add-apt-repository -y ppa:valhalla-core/valhalla
-sudo apt-get update
-sudo apt-get install -y valhalla-bin
-```
+Technical documentation for the various components of the library can be found here: [docs](docs). Service API documentation as well as links to a variety of technical descriptions are provided within the [valhalla-docs](https://github.com/tpportugal/tpp_valhalla_api_docs) repository.
 
 Building from Source
 --------------------
@@ -129,25 +112,18 @@ The following bash should be enough to make some routing data and start a server
 ```bash
 #download some data and make tiles out of it
 #NOTE: you can feed multiple extracts into pbfgraphbuilder
-wget http://download.geofabrik.de/europe/switzerland-latest.osm.pbf http://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf
+wget http://download.geofabrik.de/europe/portugal-latest.osm.pbf
 #get the config and setup
 mkdir -p valhalla_tiles
 valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json
 #build routing tiles
-#TODO: run valhalla_build_admins?
-valhalla_build_tiles -c valhalla.json switzerland-latest.osm.pbf liechtenstein-latest.osm.pbf
+valhalla_build_tiles -c valhalla.json portugal-latest.osm.pbf
 #tar it up for running the server
 find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
-
-#grab the demos repo and open up the point and click routing sample
-git clone --depth=1 --recurse-submodules --single-branch --branch=gh-pages https://github.com/valhalla/demos.git
-firefox demos/routing/index-internal.html &
-#NOTE: set the environment pulldown to 'localhost' to point it at your own server
-
 #start up the server
 valhalla_service valhalla.json 1
 #curl it directly if you like:
-curl http://localhost:8002/route --data '{"locations":[{"lat":40.285488,"lon":-76.650597,"type":"break","city":"Hershey","state":"PA"},{"lat":40.794025,"lon":-77.860695,"type":"break","city":"State College","state":"PA"}],"costing":"auto","directions_options":{"units":"miles"}}' | jq '.'
+curl http://localhost:8002/route --data '{"locations":[{"lat":40.188931,"lon":-8.4336957,"type":"break","city":"Coimbra"},{"lat":41.162216,"lon":-8.625178,"type":"break","city":"Porto"}],"costing":"multimodal","directions_options":{"units":"kilometers"}}' | jq '.'
 
 #HAVE FUN!
 ```
@@ -155,9 +131,9 @@ curl http://localhost:8002/route --data '{"locations":[{"lat":40.285488,"lon":-7
 Contributing
 ------------
 
-We welcome contributions to valhalla. If you would like to report an issue, or even better fix an existing one, please use the [valhalla issue tracker](https://github.com/valhalla/valhalla/issues) on GitHub.
+We welcome contributions to valhalla. If you would like to report an issue, or even better fix an existing one, please use the [tpp_valhalla issue tracker](https://github.com/tpportugal/tpp_valhalla/issues) on GitHub.
 
-If you would like to make an improvement to the code, please be aware that all valhalla projects are written mostly in C++11, in the K&R (1TBS variant) with two spaces as indentation. We welcome contributions as pull requests to the [repository](https://github.com/valhalla/valhalla) and highly recommend that your pull request include a test to validate the addition/change of functionality.
+If you would like to make an improvement to the code, please be aware that all valhalla projects are written mostly in C++11, in the K&R (1TBS variant) with two spaces as indentation. We welcome contributions as pull requests to the [repository](https://github.com/tpportugal/tpp_valhalla) and highly recommend that your pull request include a test to validate the addition/change of functionality.
 
 Tests
 -----
@@ -189,7 +165,7 @@ A C++ application that will create a route path with guidance instructions for t
 #Usage:
 ./valhalla_run_route -j '<JSON_ROUTE_REQUEST>' --config <CONFIG_FILE>
 #Example:
-./valhalla_run_route -j '{"locations":[{"lat":40.285488,"lon":-76.650597,"type":"break","city":"Hershey","state":"PA"},{"lat":40.794025,"lon":-77.860695,"type":"break","city":"State College","state":"PA"}],"costing":"auto","directions_options":{"units":"miles"}}' --config ../conf/valhalla.json
+./valhalla_run_route -j '{"locations":[{"lat":40.188931,"lon":-8.4336957,"type":"break","city":"Coimbra"},{"lat":41.162216,"lon":-8.625178,"type":"break","city":"Porto"}],,"costing":"multimodal","directions_options":{"units":"kilometers"}}' --config ../conf/valhalla.json
 ```
 
 Batch Script Tool
