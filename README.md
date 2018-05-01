@@ -119,7 +119,7 @@ valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-ex
 #build routing tiles
 valhalla_build_tiles -c valhalla.json portugal-latest.osm.pbf
 #tar it up for running the server
-find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
+find tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
 #start up the server
 valhalla_service valhalla.json 1
 #curl it directly if you like:

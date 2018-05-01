@@ -909,7 +909,7 @@ check_PROGRAMS += \
 	test/names \
 	test/refs \
 	test/signinfo \
-	test/countryaccess \
+	#test/countryaccess \
 	test/graphtilebuilder \
 	test/search \
 	test/node_search \
@@ -945,9 +945,9 @@ test_refs_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS
 test_signinfo_SOURCES = test/signinfo.cc test/test.cc
 test_signinfo_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 test_signinfo_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
-test_countryaccess_SOURCES = test/countryaccess.cc test/test.cc
-test_countryaccess_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
-test_countryaccess_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
+#test_countryaccess_SOURCES = test/countryaccess.cc test/test.cc
+#test_countryaccess_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
+#test_countryaccess_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
 test_graphtilebuilder_SOURCES = test/graphtilebuilder.cc test/test.cc
 test_graphtilebuilder_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 test_graphtilebuilder_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
