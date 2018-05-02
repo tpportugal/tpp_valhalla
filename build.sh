@@ -27,5 +27,5 @@ else
     ./configure
     make test -j$(nproc)
     sudo make install
-    ldconfig
+    sudo ldconfig
 fi
