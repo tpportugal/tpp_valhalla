@@ -18,7 +18,7 @@ for arg in "$@"; do
 done
 
 if [ -f $OSM_FILE ]; then
-    rm OSM_FILE
+    rm $OSM_FILE
 fi
 wget ‐‐output-document=$OSM_FILE http://download.geofabrik.de/europe/portugal-latest.osm.pbf
 
@@ -37,7 +37,7 @@ volume3="-v ${PWD}/configs/multimodal.json:/data/valhalla/${CONFIG_FILE} "
 docker_image="tpportugal/tpp_valhalla:latest "
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE} "
-cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${WEB_PROTOCOL}://${HOST_BANCO_DE_DADOS}:${PORT_BANCO_DE_DADOS} 1000 /data/valhalla/transit -31.56,29.89,-6.18,42.23 XXXXXXX 4 "
+cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${WEB_PROTOCOL}://${HOST_BANCO_DE_DADOS}:${PORT_BANCO_DE_DADOS} 1000 /data/valhalla/transit -31.56,29.89,-6.18,42.23 XXXXXXX 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE} "
 cmd_create_tar="find /data/valhalla/tiles | sort -n | tar cf /data/valhalla/tiles.tar --no-recursion -T - "
 
