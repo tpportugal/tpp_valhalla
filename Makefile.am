@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -Im4
-AM_LDFLAGS = @BOOST_LDFLAGS@ @COVERAGE_LDFLAGS@ @LUA_LIB@ 
+AM_LDFLAGS = @BOOST_LDFLAGS@ @COVERAGE_LDFLAGS@ @LUA_LIB@
 AM_CPPFLAGS = @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@ -I@abs_srcdir@/valhalla -I@abs_srcdir@/valhalla/proto -Igenfiles
 AM_CXXFLAGS = @COVERAGE_CXXFLAGS@ -I@abs_srcdir@/valhalla -I@abs_srcdir@/valhalla/proto -Igenfiles @LUA_INCLUDE@
 BOOST_LIBS = $(BOOST_DATE_TIME_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_PROGRAM_OPTIONS_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(BOOST_IOSTREAMS_LIB)
@@ -708,10 +708,10 @@ test_util_midgard_SOURCES = test/util_midgard.cc test/test.cc
 test_util_midgard_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS)
 test_util_midgard_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) $(BOOST_LIBS) libvalhalla.la
 test_gridded_data_SOURCES = test/gridded_data.cc test/test.cc
-test_gridded_data_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) 
+test_gridded_data_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS)
 test_gridded_data_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) $(BOOST_LIBS) libvalhalla.la
 test_location_SOURCES = test/location.cc test/test.cc
-test_location_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) 
+test_location_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS)
 test_location_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) $(BOOST_LIBS) libvalhalla.la
 test_admin_SOURCES = test/admin.cc test/test.cc
 test_admin_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
@@ -906,7 +906,7 @@ check_PROGRAMS += \
 	test/names \
 	test/refs \
 	test/signinfo \
-	#test/countryaccess \
+	test/countryaccess \
 	test/graphtilebuilder \
 	test/search \
 	test/node_search \
@@ -942,9 +942,9 @@ test_refs_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS
 test_signinfo_SOURCES = test/signinfo.cc test/test.cc
 test_signinfo_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 test_signinfo_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
-#test_countryaccess_SOURCES = test/countryaccess.cc test/test.cc
-#test_countryaccess_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
-#test_countryaccess_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
+test_countryaccess_SOURCES = test/countryaccess.cc test/test.cc
+test_countryaccess_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
+test_countryaccess_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
 test_graphtilebuilder_SOURCES = test/graphtilebuilder.cc test/test.cc
 test_graphtilebuilder_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 test_graphtilebuilder_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
