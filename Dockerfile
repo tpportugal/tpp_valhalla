@@ -20,7 +20,7 @@ RUN apt-get -qq update && \
     libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libgeos++-dev \
     libgeos-dev libprime-server0.6.3-dev libprotobuf-dev prime-server0.6.3-bin \
     liblua5.2-dev libspatialite-dev libsqlite3-dev lua5.2 python-all-dev \
-    libsqlite3-mod-spatialite spatialite-bin
+    libsqlite3-mod-spatialite spatialite-bin unzip
 # Mount data A.K.A "ADD" after packages installation for docker caching
 ADD . /data/valhalla/libvalhalla/
 RUN cd libvalhalla && \
