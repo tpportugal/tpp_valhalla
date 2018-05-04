@@ -12,8 +12,8 @@ OSM_FILE="portugal-latest.osm.pbf"
 for arg in "$@"; do
   shift
   case "$arg" in
-    "--with-docker") WITH_DOCKER=true ;;
-    "--data-dir=*") DATA_DIR="${arg#*=}" ;;
+    --with-docker) WITH_DOCKER=true ;;
+    --data-dir=*) DATA_DIR="${arg#*=}" ;;
   esac
 done
 
