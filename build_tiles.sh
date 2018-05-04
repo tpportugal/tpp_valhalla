@@ -2,29 +2,24 @@
 
 # Variables
 WITH_DOCKER=false
-# TODO: Make DATA_DIR a command argument
 DATA_DIR="/data/valhalla"
-WEB_PROTOCOL="http"
+WEB_PROTOCOL="https"
 HOST_BANCO_DE_DADOS="localhost"
-PORT_BANCO_DE_DADOS=8004
+PORT_BANCO_DE_DADOS=443
 CONFIG_FILE="configs/multimodal.json"
-OSM_FILE="${DATA_DIR}/portugal-latest.osm.pbf"
+OSM_FILE="portugal-latest.osm.pbf"
 
 for arg in "$@"; do
   shift
   case "$arg" in
     "--with-docker") WITH_DOCKER=true ;;
+    "--data-dir=*") DATA_DIR="${arg#*=}" ;;
   esac
 done
 
-if [ -f $OSM_FILE ]; then
-    rm $OSM_FILE
-fi
-wget ‐‐output-document=$OSM_FILE http://download.geofabrik.de/europe/portugal-latest.osm.pbf
-
 if [ $WITH_DOCKER = true ]
 then
-  HOST_BANCO_DE_DADOS="banco_de_dados"
+  HOST_BANCO_DE_DADOS="tpp.pt"
   CONFIG_FILE="_config.json"
   OSM_FILE="_osm.pbf"
 fi
@@ -39,15 +34,21 @@ cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE} "
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${WEB_PROTOCOL}://${HOST_BANCO_DE_DADOS}:${PORT_BANCO_DE_DADOS} 1000 /data/valhalla/transit -31.56,29.89,-6.18,42.23 XXXXXXX 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE} "
-cmd_create_tar="find /data/valhalla/tiles | sort -n | tar cf /data/valhalla/tiles.tar --no-recursion -T - "
+cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
+
+# Switch to data dir
+cd $DATA_DIR
+
+# Download OSM file if it doesn't exist or was updated
+wget --timestamping --backups=1 http://download.geofabrik.de/europe/portugal-latest.osm.pbf
 
 if [ $WITH_DOCKER = true ]
 then
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_timezones
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_admins
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_transit
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_tiles
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_create_tar
+  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_timezones
+  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_admins
+  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_transit
+  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_tiles
+  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_create_tar
 else
   eval $cmd_build_timezones
   eval $cmd_build_admins

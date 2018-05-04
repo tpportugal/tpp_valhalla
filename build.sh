@@ -1,6 +1,9 @@
 #!/bin/bash
+
+# Variables
 WITH_DOCKER=false
-PPA=valhalla-core/valhalla
+PPA="valhalla-core/valhalla"
+
 for arg in "$@"; do
   shift
   case "$arg" in
@@ -20,9 +23,34 @@ else
     fi
     sudo apt-get update
     sudo apt-get upgrade -y
-    sudo apt-get install -y autoconf automake make libtool pkg-config g++ gcc jq lcov protobuf-compiler vim-common libboost-all-dev libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libprime-server0.6.3-dev libprotobuf-dev prime-server0.6.3-bin
-    sudo apt-get install -y libgeos-dev libgeos++-dev liblua5.2-dev libspatialite-dev spatialite-bin libsqlite3-dev lua5.2 libsqlite3-mod-spatialite
-    sudo apt-get install -y python-all-dev
+    sudo apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    g++ \
+    gcc \
+    jq \
+    lcov \
+    libboost-all-dev \
+    libcurl4-openssl-dev \
+    libgeos-dev \
+    libgeos++-dev \
+    liblua5.2-dev \
+    liblz4-dev \
+    libprime-server0.6.3-dev \
+    libprotobuf-dev \
+    libspatialite-dev \
+    libsqlite3-dev \
+    libsqlite3-mod-spatialite \
+    libtool \
+    lua5.2 \
+    make \
+    pkg-config \
+    prime-server0.6.3-bin \
+    protobuf-compiler vim-common \
+    python-all-dev \
+    spatialite-bin \
+    zlib1g-dev \
+    unzip
     ./autogen.sh
     ./configure
     make test -j$(nproc)

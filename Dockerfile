@@ -1,5 +1,8 @@
 FROM ubuntu:16.04
-MAINTAINER TPP <api@tpp.pt>
+LABEL maintainer="TPP <api@tpp.pt>"
+# Setting valume and working dir
+VOLUME /data/valhalla
+WORKDIR /data/valhalla
 RUN apt-get -qq update && \
     apt-get -q -y upgrade && \
     apt-get install -y sudo curl wget locales && \
@@ -9,26 +12,47 @@ RUN locale-gen pt_PT.UTF-8
 ENV LC_ALL=pt_PT.UTF-8
 ENV LANG=pt_PT.UTF-8
 ENV LANGUAGE=pt_PT.UTF-8
-# Setting working dir
-WORKDIR /data/valhalla
 RUN apt-get -qq update && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:valhalla-core/valhalla
 RUN apt-get -qq update && \
-    apt-get install -y --no-install-recommends autoconf automake make libtool \
-    pkg-config g++ gcc jq lcov protobuf-compiler vim-common libboost-all-dev \
-    libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libgeos++-dev \
-    libgeos-dev libprime-server0.6.3-dev libprotobuf-dev prime-server0.6.3-bin \
-    liblua5.2-dev libspatialite-dev libsqlite3-dev lua5.2 python-all-dev \
-    libsqlite3-mod-spatialite spatialite-bin unzip
+    apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    g++ \
+    gcc \
+    jq \
+    lcov \
+    libboost-all-dev \
+    libcurl4-openssl-dev \
+    libgeos-dev \
+    libgeos++-dev \
+    liblua5.2-dev \
+    liblz4-dev \
+    libprime-server0.6.3-dev \
+    libprotobuf-dev \
+    libspatialite-dev \
+    libsqlite3-dev \
+    libsqlite3-mod-spatialite \
+    libtool \
+    lua5.2 \
+    make \
+    pkg-config \
+    prime-server0.6.3-bin \
+    protobuf-compiler vim-common \
+    python-all-dev \
+    spatialite-bin \
+    zlib1g-dev \
+    unzip
 # Mount data A.K.A "ADD" after packages installation for docker caching
-ADD . /data/valhalla/libvalhalla/
-RUN cd libvalhalla && \
-    ./autogen.sh && \
+ADD . libvalhalla/
+WORKDIR libvalhalla
+RUN ./autogen.sh && \
     ./configure --enable-static=yes && \
     make test -j$(nproc) && \
     make install && \
-    make clean && \
-    cd - && \
-    rm -rf libvalhalla && \
+    make clean
+WORKDIR /data/valhalla
+RUN rm -rf libvalhalla && \
     ldconfig
+EXPOSE 8002
