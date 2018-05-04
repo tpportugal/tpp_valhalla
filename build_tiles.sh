@@ -12,6 +12,7 @@ CONFIG_FILE="config.json"
 OSM_FILE="portugal-latest.osm.pbf"
 
 for arg in "$@"; do
+  shift
   case "$arg" in
     --datastore-url=*) DATASTORE_URL="${arg#*=}" ;;
     --build-admins) BUILD_ADMINS=true ;;
@@ -55,8 +56,8 @@ cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} 1000 t
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE} "
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
 
-# Switch to data dir
-cd "$DATA_DIR" || echo "$DATA_DIR not found" && exit
+# Switch to data dir - Exit script if it fails
+cd $DATA_DIR || { echo "$DATA_DIR not found" && exit 1; }
 
 # Download OSM file if it doesn't exist or was updated
 wget --timestamping --backups=1 http://download.geofabrik.de/europe/portugal-latest.osm.pbf
