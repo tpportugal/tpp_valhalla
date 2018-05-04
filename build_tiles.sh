@@ -16,11 +16,12 @@ for arg in "$@"; do
     -o=*|--data-dir=*) DATA_DIR="${arg#*=}" ;;
     -h|?|--help) echo "Usage: build.sh [OPTIONS]"
                  echo "Available options:"
-                 echo "  --help | -h | ?              --  Show this message"
-                 echo "  --with-docker | -d           --  Build in a docker container." \
-                      "False if ommited."
-                 echo "  --data-dir=/dir/ | -o=/dir/  --  Path to Valhalla data dir. " \
-                      "Default is /data/valhalla/. Mounted as a volume if --with-docker." ;;
+                 echo "  -h, ?,    --help|           Show this message"
+                 echo "  -d,       --with-docker     Build in a docker container." \
+                                                    "False if ommited."
+                 echo "  -o=/dir/, --data-dir=/dir/  Path to Valhalla data dir. " \
+                                                    "Default is /data/valhalla/."
+                 echo "                              Mounted as a volume if --with-docker." ;;
   esac
 done
 
