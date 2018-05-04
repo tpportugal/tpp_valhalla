@@ -2,18 +2,25 @@
 
 # Variables
 WITH_DOCKER=false
-DATA_DIR="/data/valhalla"
-WEB_PROTOCOL="http"
+DATA_DIR="/data/valhalla/"
+WEB_PROTOCOL="https"
 HOST_BANCO_DE_DADOS="localhost"
-PORT_BANCO_DE_DADOS=8004
+PORT_BANCO_DE_DADOS=443
 CONFIG_FILE="configs/multimodal.json"
 OSM_FILE="portugal-latest.osm.pbf"
 
 for arg in "$@"; do
   shift
   case "$arg" in
-    --with-docker) WITH_DOCKER=true ;;
-    --data-dir=*) DATA_DIR="${arg#*=}" ;;
+    -d|--with-docker) WITH_DOCKER=true ;;
+    -o=*|--data-dir=*) DATA_DIR="${arg#*=}" ;;
+    -h|?|--help) echo "Usage: build.sh [OPTIONS]"
+                 echo "Available options:"
+                 echo "  --help | -h | ?              --  Show this message"
+                 echo "  --with-docker | -d           --  Build in a docker container." \
+                      "False if ommited."
+                 echo "  --data-dir=/dir/ | -o=/dir/  --  Path to Valhalla data dir. " \
+                      "Default is /data/valhalla/. Mounted as a volume if --with-docker." ;;
   esac
 done
 
@@ -21,13 +28,13 @@ if [ $WITH_DOCKER = true ]
 then
   HOST_BANCO_DE_DADOS="tpp.pt"
   CONFIG_FILE="_config.json"
-  OSM_FILE="_osm.pbf"
+#  OSM_FILE="_osm.pbf"
 fi
 
 # Command list
 docker_run="docker run "
-volume1="-v ${DATA_DIR}/:/data/valhalla/ "
-volume2="-v ${DATA_DIR}/portugal-latest.osm.pbf:/data/valhalla/${OSM_FILE} "
+volume1="-v ${DATA_DIR}:/data/valhalla/ "
+#volume2="-v ${DATA_DIR}portugal-latest.osm.pbf:/data/valhalla/${OSM_FILE} "
 volume3="-v ${PWD}/configs/multimodal.json:/data/valhalla/${CONFIG_FILE} "
 docker_image="tpportugal/tpp_valhalla:latest "
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
@@ -44,11 +51,11 @@ wget --timestamping --backups=1 http://download.geofabrik.de/europe/portugal-lat
 
 if [ $WITH_DOCKER = true ]
 then
-  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_timezones
-  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_admins
-  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_transit
-  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_build_tiles
-  eval $docker_run $volume1 $volume2 $volume3 $docker_image $cmd_create_tar
+  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_timezones
+  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_admins
+  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_transit
+  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_tiles
+  eval $docker_run $volume1 $volume3 $docker_image $cmd_create_tar
 else
   eval $cmd_build_timezones
   eval $cmd_build_admins
