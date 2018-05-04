@@ -3,9 +3,9 @@
 # Variables
 WITH_DOCKER=false
 DATA_DIR="/data/valhalla"
-WEB_PROTOCOL="https"
+WEB_PROTOCOL="http"
 HOST_BANCO_DE_DADOS="localhost"
-PORT_BANCO_DE_DADOS=443
+PORT_BANCO_DE_DADOS=8004
 CONFIG_FILE="configs/multimodal.json"
 OSM_FILE="portugal-latest.osm.pbf"
 
