@@ -3,9 +3,9 @@
 # Variables
 WITH_DOCKER=false
 DATA_DIR="/data/valhalla/"
-WEB_PROTOCOL="https"
+WEB_PROTOCOL="http"
 HOST_BANCO_DE_DADOS="localhost"
-PORT_BANCO_DE_DADOS=443
+PORT_BANCO_DE_DADOS=8004
 CONFIG_FILE="configs/multimodal.json"
 OSM_FILE="portugal-latest.osm.pbf"
 
@@ -28,14 +28,12 @@ if [ $WITH_DOCKER = true ]
 then
   HOST_BANCO_DE_DADOS="tpp.pt"
   CONFIG_FILE="_config.json"
-#  OSM_FILE="_osm.pbf"
 fi
 
 # Command list
 docker_run="docker run "
 volume1="-v ${DATA_DIR}:/data/valhalla/ "
-#volume2="-v ${DATA_DIR}portugal-latest.osm.pbf:/data/valhalla/${OSM_FILE} "
-volume3="-v ${PWD}/configs/multimodal.json:/data/valhalla/${CONFIG_FILE} "
+volume2="-v ${PWD}/configs/multimodal.json:/data/valhalla/${CONFIG_FILE} "
 docker_image="tpportugal/tpp_valhalla:latest "
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE} "
@@ -51,11 +49,11 @@ wget --timestamping --backups=1 http://download.geofabrik.de/europe/portugal-lat
 
 if [ $WITH_DOCKER = true ]
 then
-  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_timezones
-  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_admins
-  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_transit
-  eval $docker_run $volume1 $volume3 $docker_image $cmd_build_tiles
-  eval $docker_run $volume1 $volume3 $docker_image $cmd_create_tar
+  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_timezones
+  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_admins
+  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_transit
+  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_tiles
+  eval $docker_run $volume1 $volume2 $docker_image $cmd_create_tar
 else
   eval $cmd_build_timezones
   eval $cmd_build_admins
