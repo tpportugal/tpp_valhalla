@@ -23,7 +23,7 @@ for arg in "$@"; do
     --data-dir=*) DATA_DIR="${arg#*=}" ;;
     --osm-file=*) OSM_FILE="${arg#*=}" ;;
     --with-docker) WITH_DOCKER=true ;;
-    --help|*) echo "Usage: ./build.sh [OPTIONS]"
+    --help|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
               echo "Available options:"
               echo "  --build-admins      Build admins DB. False if ommited."
               echo "  --build-config      Build config file. False if ommited."
