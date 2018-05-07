@@ -50,34 +50,40 @@ docker_run="docker run "
 volume1="-v ${DATA_DIR}:/data/valhalla/ "
 volume2="-v ${PWD}/configs/multimodal.json:/data/valhalla/${CONFIG_FILE} "
 docker_image="tpportugal/tpp_valhalla:latest "
+cmd_build_config="valhalla_build_config > ${CONFIG_FILE}"
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE} "
-cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
+cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL}
+1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE} "
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
 
 # Switch to data dir - Exit script if it fails
-cd $DATA_DIR || { echo "$DATA_DIR not found" && exit 1; }
+cd $DATA_DIR || { echo "$DATA_DIR not found. Please create it before running this script again" && exit 1; }
 
 # Download OSM file if it doesn't exist or was updated
 wget --timestamping --backups=1 http://download.geofabrik.de/europe/portugal-latest.osm.pbf
 
 if [ $WITH_DOCKER = true ]
 then
+  if [ $BUILD_CONFIG = true ]
+  then
+    eval $docker_run $volume1 $docker_image $cmd_build_config
+  fi
   if [ $BUILD_TIMEZONES = true ]
   then
-    eval $docker_run $volume1 $volume2 $docker_image $cmd_build_timezones
+    eval $docker_run $volume1 $docker_image $cmd_build_timezones
   fi
   if [ $BUILD_ADMINS = true ]
   then
-    eval $docker_run $volume1 $volume2 $docker_image $cmd_build_admins
+    eval $docker_run $volume1 $docker_image $cmd_build_admins
   fi
   if [ $BUILD_TRANSIT = true ]
   then
-    eval $docker_run $volume1 $volume2 $docker_image $cmd_build_transit
+    eval $docker_run $volume1 $docker_image $cmd_build_transit
   fi
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_build_tiles
-  eval $docker_run $volume1 $volume2 $docker_image $cmd_create_tar
+  eval $docker_run $volume1 $docker_image $cmd_build_tiles
+  eval $docker_run $volume1 $docker_image $cmd_create_tar
 else
   if [ $BUILD_TIMEZONES = true ]
   then
