@@ -91,7 +91,7 @@ done
 # Command list
 docker_run="docker run"
 volume1="-v ${DATA_DIR}:/data/valhalla"
-docker_image="tpportugal/tpp_valhalla:latest "
+docker_image="tpportugal/tpp_valhalla:latest"
 cmd_build_config="valhalla_build_config ${CONFIG_VALUES} > ${DATA_DIR}/${CONFIG_FILE}"
 cmd_build_timezones="valhalla_build_timezones ${DATA_DIR}/${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${DATA_DIR}/${CONFIG_FILE} ${DATA_DIR}/${OSM_FILE}"
@@ -99,6 +99,7 @@ cmd_build_transit="valhalla_build_transit ${DATA_DIR}/${CONFIG_FILE} ${DATASTORE
 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
 cmd_build_tiles="valhalla_build_tiles -c ${DATA_DIR}/${CONFIG_FILE} ${DATA_DIR}/${OSM_FILE}"
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
+cmd_chown_data="chown -R ${UID}:${GROUPS} ${DATA_DIR}"
 
 # Switch to data dir - Exit script if it fails
 cd "$DATA_DIR" || { echo "$DATA_DIR not found. Please create it before" \
@@ -127,7 +128,12 @@ then
   fi
   eval $docker_run $volume1 $docker_image $cmd_build_tiles
   eval $docker_run $volume1 $docker_image $cmd_create_tar
+  eval $docker_run $volume1 $docker_image $cmd_chown_data
 else
+  if [ $BUILD_CONFIG = true ]
+  then
+    eval $cmd_build_config
+  fi
   if [ $BUILD_TIMEZONES = true ]
   then
     eval $cmd_build_timezones
