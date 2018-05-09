@@ -58,18 +58,19 @@ for arg in "$@"; do
   case "$arg" in
     --all) BUILD_ADMINS=true BUILD_CONFIG=true \
            BUILD_TIMEZONES=true BUILD_TRANSIT=true ;;
-    --datastore-url=*) DATASTORE_URL="${arg#*=}" ;;
     --build-admins) BUILD_ADMINS=true ;;
     --build-config) BUILD_CONFIG=true ;;
     --build-timezones) BUILD_TIMEZONES=true ;;
     --build-transit) BUILD_TRANSIT=true ;;
     --config-file=*) CONFIG_FILE="${arg#*=}" ;;
+    --datastore-url=*) DATASTORE_URL="${arg#*=}" ;;
     --data-dir=*) DATA_DIR="${arg#*=}" ;;
     --osm-file=*) OSM_FILE="${arg#*=}" ;;
     --osm-file-url=*) OSM_FILE_URL="${arg#*=}";;
     --with-docker) WITH_DOCKER=true ;;
     --help|-h|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
               echo "Available options:"
+              echo "  --all               All --build-* options true. False if ommited."
               echo "  --build-admins      Build admins DB. False if ommited."
               echo "  --build-config      Build config file. False if ommited."
               echo "  --build-transit     Build transit tiles. False if ommited."
