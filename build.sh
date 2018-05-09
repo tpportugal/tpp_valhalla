@@ -8,7 +8,7 @@ for arg in "$@"; do
   shift
   case "$arg" in
     --with-docker) WITH_DOCKER=true ;;
-    --help|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
+    --help|*) echo "Usage: ./build.sh [OPTIONS]"
               echo "Available options:"
               echo "  --with-docker       Build with docker. False if ommited."
               echo "  --help              Show this message"
@@ -24,7 +24,7 @@ then
 else
     sudo apt-get install -y software-properties-common
     if ! grep -q "^deb .*$PPA" /etc/apt/sources.list /etc/apt/sources.list.d/*; then
-      sudo add-apt-repository -y ppa:$PPA
+      sudo add-apt-repository -y ppa:"$PPA"
     fi
     sudo apt-get update
     sudo apt-get upgrade -y

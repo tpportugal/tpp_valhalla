@@ -66,7 +66,7 @@ for arg in "$@"; do
     --config-file=*) CONFIG_FILE="${arg#*=}" ;;
     --data-dir=*) DATA_DIR="${arg#*=}" ;;
     --osm-file=*) OSM_FILE="${arg#*=}" ;;
-    --osm-url=*) OSM_URL="${arg#*=}";;
+    --osm-file-url=*) OSM_FILE_URL="${arg#*=}";;
     --with-docker) WITH_DOCKER=true ;;
     --help|-h|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
               echo "Available options:"
@@ -104,7 +104,7 @@ cd "$DATA_DIR" || { echo "$DATA_DIR not found. Please create it before" \
                          "running this script again" && exit 1; }
 
 # Download OSM file if it doesn't exist or was updated
-wget --timestamping --backups=1 "$OSM_URL"
+wget --timestamping --backups=1 "$OSM_FILE_URL"
 
 if [ $WITH_DOCKER = true ]
 then
