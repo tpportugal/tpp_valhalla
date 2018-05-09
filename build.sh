@@ -1,20 +1,30 @@
 #!/bin/bash
 
 # Variables
+BUILD_CLEAN=false
 WITH_DOCKER=false
 PPA="valhalla-core/valhalla"
 
 for arg in "$@"; do
   shift
   case "$arg" in
+    --clean) BUILD_CLEAN=true ;;
     --with-docker) WITH_DOCKER=true ;;
-    --help|*) echo "Usage: ./build.sh [OPTIONS]"
+    --help|-h|*) echo "Usage: ./build.sh [OPTIONS]"
               echo "Available options:"
-              echo "  --with-docker       Build with docker. False if ommited."
-              echo "  --help              Show this message"
+              echo "  --with-docker  Build with docker. False if ommited."
+              echo "  --clean        Cleanup build artifacts. False if ommited."
+              echo "  --help, -h     Show this message"
     exit ;;
   esac
 done
+
+if
+
+if [ $BUILD_CLEAN = true ]
+then
+    make clean
+fi
 
 git submodule update --init --recursive
 
