@@ -7,7 +7,12 @@ PPA="valhalla-core/valhalla"
 for arg in "$@"; do
   shift
   case "$arg" in
-    "--with-docker") WITH_DOCKER=true ;;
+    --with-docker) WITH_DOCKER=true ;;
+    --help|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
+              echo "Available options:"
+              echo "  --with-docker       Build with docker. False if ommited."
+              echo "  --help              Show this message"
+    exit ;;
   esac
 done
 
@@ -19,7 +24,7 @@ then
 else
     sudo apt-get install -y software-properties-common
     if ! grep -q "^deb .*$PPA" /etc/apt/sources.list /etc/apt/sources.list.d/*; then
-      sudo add-apt-repository -y ppa:valhalla-core/valhalla
+      sudo add-apt-repository -y ppa:$PPA
     fi
     sudo apt-get update
     sudo apt-get upgrade -y

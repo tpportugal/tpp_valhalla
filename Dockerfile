@@ -1,7 +1,6 @@
 FROM ubuntu:16.04
 LABEL maintainer="TPP <api@tpp.pt>"
-# Setting valume and working dir
-VOLUME /data/valhalla
+# Set working dir
 WORKDIR /data/valhalla
 RUN apt-get -qq update && \
     apt-get -q -y upgrade && \
@@ -45,7 +44,7 @@ RUN apt-get -qq update && \
     zlib1g-dev \
     unzip
 # Mount data A.K.A "ADD" after packages installation for docker caching
-ADD . libvalhalla/
+COPY . libvalhalla/
 WORKDIR libvalhalla
 RUN ./autogen.sh && \
     ./configure --enable-static=yes && \

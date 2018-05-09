@@ -69,7 +69,7 @@
       "turn_penalty_factor": 0
     },
     "grid": {
-      "cache_size": 10240,
+      "cache_size": 100240,
       "size": 500
     },
     "logging": {
@@ -91,8 +91,9 @@
     "verbose": true
   },
   "mjolnir": {
-    "admin": "/data/valhalla/admins.sqlite",
+    "admin": "/data/valhalla/admin.sqlite",
     "hierarchy": true,
+    "include_driveways": true,
     "logging": {
       "color": true,
       "file_name": "path_to_some_file.log",
@@ -102,7 +103,7 @@
     "shortcuts": true,
     "tile_dir": "/data/valhalla/tiles",
     "tile_extract": "/data/valhalla/tiles.tar",
-    "timezone": "/data/valhalla/timezones.sqlite",
+    "timezone": "/data/valhalla/tz_world.sqlite",
     "transit_dir": "/data/valhalla/transit"
   },
   "odin": {
@@ -172,7 +173,7 @@
       "max_locations": 50000,
       "max_matrix_distance": 200000.0,
       "max_matrix_locations": 5000,
-      "max_transit_walking_distance": 3000,
+      "max_transit_walking_distance": 10000,
       "min_transit_walking_distance": 1
     },
     "skadi": {
