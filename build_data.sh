@@ -10,7 +10,7 @@ CONFIG_FILE="config.json"
 DATASTORE_URL="http://localhost:8004"
 DATA_DIR="/data/valhalla"
 OSM_FILE="portugal-latest.osm.pbf"
-OSM_URL="http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
+OSM_FILE_URL="http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
 WITH_DOCKER=false
 
 # Custom Values for Valhalla Configuration
@@ -75,10 +75,12 @@ for arg in "$@"; do
               echo "  --build-transit     Build transit tiles. False if ommited."
               echo "  --build-timezones   Build timezones DB. False if ommited."
               echo "  --config-file=FILE  Path to config file. Default is config.json"
-              echo "  --datastore-url=URL URL of the Datastore API. Default is http://localhost:8004"
+              echo "  --datastore-url=URL URL of the Datastore API. Default is"
+              echo "                       http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
               echo "  --data-dir=DIR      Path to Valhalla data dir. Default is /data/valhalla."
-              echo "                      Will be mounted as a volume if --with-docker."
+              echo "                       Will be mounted as a volume if --with-docker."
               echo "  --osm-file=FILE     Path to OSM .pbf file. Default is portugal-latest.osm.pbf"
+              echo "  --osm-file-url=URL  URL to OSM .pbf file. Default is portugal-latest.osm.pbf"
               echo "  --with-docker       Build with docker. False if ommited."
               echo "  --help, -h          Show this message"
     exit ;;
