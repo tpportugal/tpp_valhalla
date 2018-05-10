@@ -12,6 +12,7 @@ ENV LC_ALL=pt_PT.UTF-8
 ENV LANG=pt_PT.UTF-8
 ENV LANGUAGE=pt_PT.UTF-8
 RUN apt-get -qq update && \
+    apt-get -q -y upgrade && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:valhalla-core/valhalla
 RUN apt-get -qq update && \
@@ -23,14 +24,25 @@ RUN apt-get -qq update && \
     jq \
     lcov \
     libboost-all-dev \
+    libboost-date-time1.58.0 \
+    libboost-filesystem1.58.0 \
+    libboost-program-options1.58.0 \
+    libboost-regex1.58.0 \
+    libboost-system1.58.0 \
+    libboost-thread1.58.0 \
+    libboost-iostreams1.58.0 \
     libcurl4-openssl-dev \
+    libgeos-3.5.0 \
     libgeos-dev \
     libgeos++-dev \
+    liblua5.2 \
     liblua5.2-dev \
     liblz4-dev \
     libprime-server0.6.3-dev \
+    libprotobuf9v5 \
     libprotobuf-dev \
     libspatialite-dev \
+    libsqlite3-0 \
     libsqlite3-dev \
     libsqlite3-mod-spatialite \
     libtool \
@@ -38,7 +50,8 @@ RUN apt-get -qq update && \
     make \
     pkg-config \
     prime-server0.6.3-bin \
-    protobuf-compiler vim-common \
+    protobuf-compiler \
+    vim-common \
     python-all-dev \
     spatialite-bin \
     zlib1g-dev \
@@ -54,4 +67,28 @@ RUN ./autogen.sh && \
 WORKDIR /data/valhalla
 RUN rm -rf libvalhalla && \
     ldconfig
+RUN apt-get -y purge  \
+    autoconf \
+    automake \
+    g++ \
+    gcc \
+    lcov \
+    libboost-all-dev \
+    libcurl4-openssl-dev \
+    libgeos-dev \
+    libgeos++-dev \
+    liblua5.2-dev \
+    liblz4-dev \
+    libprime-server0.6.3-dev \
+    libprotobuf-dev \
+    libspatialite-dev \
+    libsqlite3-dev \
+    libtool \
+    make \
+    pkg-config \
+    protobuf-compiler \
+    vim-common \
+    python-all-dev \
+    zlib1g-dev \
+    && apt-get autoremove -y && apt-get clean
 EXPOSE 8002
