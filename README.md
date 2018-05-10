@@ -1,15 +1,15 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d75b178c15d143dd978726fbc364e154)](https://app.codacy.com/app/TPP/tpp_valhalla?utm_source=github.com&utm_medium=referral&utm_content=tpportugal/tpp_valhalla&utm_campaign=badger)
 
-     ██▒   █▓ ▄▄▄       ██▓     ██░ ██  ▄▄▄       ██▓     ██▓    ▄▄▄      
-    ▓██░   █▒▒████▄    ▓██▒    ▓██░ ██▒▒████▄    ▓██▒    ▓██▒   ▒████▄    
-     ▓██  █▒░▒██  ▀█▄  ▒██░    ▒██▀▀██░▒██  ▀█▄  ▒██░    ▒██░   ▒██  ▀█▄  
-      ▒██ █░░░██▄▄▄▄██ ▒██░    ░▓█ ░██ ░██▄▄▄▄██ ▒██░    ▒██░   ░██▄▄▄▄██ 
+     ██▒   █▓ ▄▄▄       ██▓     ██░ ██  ▄▄▄       ██▓     ██▓    ▄▄▄
+    ▓██░   █▒▒████▄    ▓██▒    ▓██░ ██▒▒████▄    ▓██▒    ▓██▒   ▒████▄
+     ▓██  █▒░▒██  ▀█▄  ▒██░    ▒██▀▀██░▒██  ▀█▄  ▒██░    ▒██░   ▒██  ▀█▄
+      ▒██ █░░░██▄▄▄▄██ ▒██░    ░▓█ ░██ ░██▄▄▄▄██ ▒██░    ▒██░   ░██▄▄▄▄██
        ▒▀█░   ▓█   ▓██▒░██████▒░▓█▒░██▓ ▓█   ▓██▒░██████▒░██████▒▓█   ▓██▒
        ░ ▐░   ▒▒   ▓▒█░░ ▒░▓  ░ ▒ ░░▒░▒ ▒▒   ▓▒█░░ ▒░▓  ░░ ▒░▓  ░▒▒   ▓▒█░
        ░ ░░    ▒   ▒▒ ░░ ░ ▒  ░ ▒ ░▒░ ░  ▒   ▒▒ ░░ ░ ▒  ░░ ░ ▒  ░ ▒   ▒▒ ░
-         ░░    ░   ▒     ░ ░    ░  ░░ ░  ░   ▒     ░ ░     ░ ░    ░   ▒   
+         ░░    ░   ▒     ░ ░    ░  ░░ ░  ░   ▒     ░ ░     ░ ░    ░   ▒
           ░        ░  ░    ░  ░ ░  ░  ░      ░  ░    ░  ░    ░  ░     ░  ░
-         ░                                                                    
+         ░
 
 
 Valhalla is an open source routing engine and accompanying libraries for use with OpenStreetMap data. Valhalla also includes tools like time+distance matrix computation, isochrones, elevation sampling, map matching and tour optimization (Travelling Salesman).
@@ -57,6 +57,24 @@ Building from Source
 --------------------
 
 Valhalla uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html) to configure and build itself.
+
+To build it with Docker or on our recommended system, Ubuntu 16.04, use the scripts below.
+Use the flag `--with-docker` on any of the scripts to use Docker. Use `--help` to see all the available options.
+
+```bash
+./build.sh
+./build_data.sh --all
+```
+Now, run it with
+```bash
+./run.sh
+```
+And stop it with
+```bash
+./stop.sh
+```
+
+If you wish to do it all by yourself or use other system, use the intructions below.
 
 To install on a Debian or Ubuntu system you need to install its dependencies with:
 
@@ -115,7 +133,7 @@ The following bash should be enough to make some routing data and start a server
 wget http://download.geofabrik.de/europe/portugal-latest.osm.pbf
 #get the config and setup
 mkdir -p valhalla_tiles
-valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json
+valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezone.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admin.sqlite > valhalla.json
 #build routing tiles
 valhalla_build_tiles -c valhalla.json portugal-latest.osm.pbf
 #tar it up for running the server
