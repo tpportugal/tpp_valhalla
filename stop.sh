@@ -3,7 +3,12 @@ WITH_DOCKER=false
 for arg in "$@"; do
   shift
   case "$arg" in
-    "--with-docker") WITH_DOCKER=true ;;
+    --with-docker) WITH_DOCKER=true ;;
+    --help|-h|*) echo "Usage: ./stop.sh [OPTIONS]"
+              echo "Available options:"
+              echo "  --with-docker       Build with docker. False if ommited."
+              echo "  --help, -h          Show this message"
+    exit ;;
   esac
 done
 

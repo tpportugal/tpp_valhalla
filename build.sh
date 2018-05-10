@@ -19,8 +19,6 @@ for arg in "$@"; do
   esac
 done
 
-if
-
 if [ $BUILD_CLEAN = true ]
 then
     make clean
@@ -61,7 +59,8 @@ else
     make \
     pkg-config \
     prime-server0.6.3-bin \
-    protobuf-compiler vim-common \
+    protobuf-compiler \
+    vim-common \
     python-all-dev \
     spatialite-bin \
     zlib1g-dev \
