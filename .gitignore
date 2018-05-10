@@ -212,3 +212,9 @@ coverage/
 /.vs*/
 /*build*/
 /CMakeSettings.json
+
+# PBF'
+*.pbf
+
+# Ignore tiles
+tiles/*.tar
