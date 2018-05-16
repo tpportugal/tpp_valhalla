@@ -4,10 +4,12 @@
 BUILD_ALL=false
 BUILD_ADMINS=false
 BUILD_CONFIG=false
+BUILD_TILES=false
 BUILD_TIMEZONES=false
 BUILD_TRANSIT=false
 CLEAN_DATA=false
 CONFIG_FILE="config.json"
+CREATE_TAR=false
 DATASTORE_URL="http://localhost:8004"
 DATA_DIR="/data/valhalla"
 OSM_FILE="portugal-latest.osm.pbf"
@@ -18,7 +20,8 @@ for arg in "$@"; do
   shift
   case "$arg" in
     --all) BUILD_ADMINS=true BUILD_CONFIG=true \
-           BUILD_TIMEZONES=true BUILD_TRANSIT=true ;;
+           BUILD_TIMEZONES=true BUILD_TRANSIT=true \
+           BUILD_TILES=true CREATE_TAR=true ;;
     --build-admins) BUILD_ADMINS=true ;;
     --build-config) BUILD_CONFIG=true ;;
     --build-timezones) BUILD_TIMEZONES=true ;;
@@ -35,10 +38,12 @@ for arg in "$@"; do
               echo "  --all               All --build-* options true. False if ommited."
               echo "  --build-admins      Build admins DB. False if ommited."
               echo "  --build-config      Build config file. False if ommited."
-              echo "  --build-transit     Build transit tiles. False if ommited."
+              echo "  --build-tiles       Build routing tiles. False if ommited."
               echo "  --build-timezones   Build timezones DB. False if ommited."
-              echo "  --clean-data        Clean files in data dir. False if ommited."
+              echo "  --build-transit     Fetch and build transit tiles. False if ommited."
+              echo "  --clean-data        Cleanup files in data dir. False if ommited."
               echo "  --config-file=FILE  Path to config file. Default is config.json"
+              echo "  --create-tar        Create tiles.tar file. False if ommited."
               echo "  --datastore-url=URL URL of the Datastore API. Default is http://localhost:8004"
               echo "  --data-dir=DIR      Path to Valhalla data dir. Default is /data/valhalla."
               echo "                       Will be mounted as a volume if --with-docker."
@@ -144,8 +149,14 @@ then
   then
     eval $docker_run $volume1 $docker_image $cmd_build_transit
   fi
-  eval $docker_run $volume1 $docker_image $cmd_build_tiles
-  eval $docker_run $volume1 $docker_image $cmd_create_tar
+  if [ $BUILD_TILES = true ]
+  then
+    eval $docker_run $volume1 $docker_image $cmd_build_tiles
+  fi
+  if [ $CREATE_TAR = true ]
+  then
+    eval $docker_run $volume1 $docker_image $cmd_create_tar
+  fi
   eval $docker_run $volume1 $docker_image $cmd_chown_data
 else
   if [ $CLEAN_DATA = true ]
@@ -168,6 +179,12 @@ else
   then
     eval $cmd_build_transit
   fi
-  eval $cmd_build_tiles
+  if [ $BUILD_TILES = true ]
+  then
+    eval $cmd_build_tiles
+  fi
+  if [ $CREATE_TAR = true ]
+  then
   eval $cmd_create_tar
+  fi
 fi
