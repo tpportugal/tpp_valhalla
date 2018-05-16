@@ -53,7 +53,7 @@ done
 
 # Custom Values for Valhalla Configuration
 
-CONFIG_VALUES_COMMON="--loki-service-defaults-minimum-reachability 50 \
+CONFIG_COMMON="--loki-service-defaults-minimum-reachability 50 \
 --meili-default-breakage-distance 3000 \
 --meili-default-interpolation-distance 15 \
 --meili-default-max-route-distance-factor 50 \
@@ -95,7 +95,7 @@ CONFIG_VALUES_DIR="--additional-data-elevation /data/valhalla/elevation/ \
 --mjolnir-tile-extract /data/valhalla/tiles.tar \
 --mjolnir-transit-dir /data/valhalla/transit"
 else
-CONFIG_VALUES_DIR="--additional-data-elevation ${DATA_DIR}/elevation/ \
+CONFIG_DIRS="--additional-data-elevation ${DATA_DIR}/elevation/ \
 --mjolnir-admin ${DATA_DIR}/admin.sqlite \
 --mjolnir-timezone ${DATA_DIR}/tz_world.sqlite \
 --mjolnir-tile-dir ${DATA_DIR}/tiles \
@@ -107,7 +107,7 @@ fi
 docker_run="docker run"
 volume1="-v ${DATA_DIR}:/data/valhalla"
 docker_image="tpportugal/tpp_valhalla:latest"
-cmd_build_config="valhalla_build_config ${CONFIG_VALUES_COMMON} ${CONFIG_VALUES_DIR} > ${CONFIG_FILE}"
+cmd_build_config="valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS} > ${CONFIG_FILE}"
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
