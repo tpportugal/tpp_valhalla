@@ -77,11 +77,12 @@ for arg in "$@"; do
               echo "  --build-timezones   Build timezones DB. False if ommited."
               echo "  --config-file=FILE  Path to config file. Default is config.json"
               echo "  --datastore-url=URL URL of the Datastore API. Default is"
-              echo "                       http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
+              echo "                       http://localhost:8004"
               echo "  --data-dir=DIR      Path to Valhalla data dir. Default is /data/valhalla."
               echo "                       Will be mounted as a volume if --with-docker."
               echo "  --osm-file=FILE     Path to OSM .pbf file. Default is portugal-latest.osm.pbf"
-              echo "  --osm-file-url=URL  URL to OSM .pbf file. Default is portugal-latest.osm.pbf"
+              echo "  --osm-file-url=URL  URL to OSM .pbf file. Default is"
+              echo "                       http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
               echo "  --with-docker       Build with docker. False if ommited."
               echo "  --help, -h          Show this message"
     exit ;;
@@ -90,14 +91,14 @@ done
 
 # Command list
 docker_run="docker run"
-volume1="-v ${DATA_DIR}:/data/valhalla"
+volume1="-v ${DATA_DIR}:/data/valhalla/"
 docker_image="tpportugal/tpp_valhalla:latest"
 cmd_build_config="valhalla_build_config ${CONFIG_VALUES} > ${DATA_DIR}/${CONFIG_FILE}"
-cmd_build_timezones="valhalla_build_timezones ${DATA_DIR}/${CONFIG_FILE} "
-cmd_build_admins="valhalla_build_admins -c ${DATA_DIR}/${CONFIG_FILE} ${DATA_DIR}/${OSM_FILE}"
-cmd_build_transit="valhalla_build_transit ${DATA_DIR}/${CONFIG_FILE} ${DATASTORE_URL} \
+cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
+cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
+cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
-cmd_build_tiles="valhalla_build_tiles -c ${DATA_DIR}/${CONFIG_FILE} ${DATA_DIR}/${OSM_FILE}"
+cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
 cmd_chown_data="chown -R ${UID}:${GROUPS} ${DATA_DIR}"
 
