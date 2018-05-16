@@ -52,7 +52,6 @@ for arg in "$@"; do
 done
 
 # Custom Values for Valhalla Configuration
-
 CONFIG_COMMON="--loki-service-defaults-minimum-reachability 50 \
 --meili-default-breakage-distance 3000 \
 --meili-default-interpolation-distance 15 \
@@ -85,10 +84,10 @@ CONFIG_COMMON="--loki-service-defaults-minimum-reachability 50 \
 --service-limits-transit-max-locations 50000 \
 --service-limits-transit-max-matrix-locations 5000 \
 --thor-logging-long-request 1100.0"
-
+# Change dir values in config depending on type of build
 if [ $WITH_DOCKER = true ]
 then
-CONFIG_VALUES_DIR="--additional-data-elevation /data/valhalla/elevation/ \
+CONFIG_DIRS="--additional-data-elevation /data/valhalla/elevation/ \
 --mjolnir-admin /data/valhalla/admin.sqlite \
 --mjolnir-timezone /data/valhalla/tz_world.sqlite \
 --mjolnir-tile-dir /data/valhalla/tiles \
