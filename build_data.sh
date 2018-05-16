@@ -113,7 +113,7 @@ cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
-cmd_chown_data="chown -R ${UID}:${GROUPS} ${DATA_DIR}"
+cmd_chown_data="chown -R ${UID}:${GROUPS} /data/valhalla"
 
 # Switch to data dir - Exit script if it fails
 cd "${DATA_DIR}" || { echo "${DATA_DIR} not found. Please create it before" \
