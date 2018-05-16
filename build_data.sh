@@ -76,8 +76,7 @@ for arg in "$@"; do
               echo "  --build-transit     Build transit tiles. False if ommited."
               echo "  --build-timezones   Build timezones DB. False if ommited."
               echo "  --config-file=FILE  Path to config file. Default is config.json"
-              echo "  --datastore-url=URL URL of the Datastore API. Default is"
-              echo "                       http://localhost:8004"
+              echo "  --datastore-url=URL URL of the Datastore API. Default is http://localhost:8004"
               echo "  --data-dir=DIR      Path to Valhalla data dir. Default is /data/valhalla."
               echo "                       Will be mounted as a volume if --with-docker."
               echo "  --osm-file=FILE     Path to OSM .pbf file. Default is portugal-latest.osm.pbf"
@@ -93,7 +92,7 @@ done
 docker_run="docker run"
 volume1="-v ${DATA_DIR}:/data/valhalla/"
 docker_image="tpportugal/tpp_valhalla:latest"
-cmd_build_config="valhalla_build_config ${CONFIG_VALUES} > ${DATA_DIR}/${CONFIG_FILE}"
+cmd_build_config="valhalla_build_config ${CONFIG_VALUES} > ${CONFIG_FILE}"
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
