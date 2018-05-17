@@ -20,8 +20,8 @@ for arg in "$@"; do
   shift
   case "$arg" in
     --all) BUILD_ADMINS=true BUILD_CONFIG=true \
-           BUILD_TIMEZONES=true BUILD_TRANSIT=true \
-           BUILD_TILES=true CREATE_TAR=true ;;
+           BUILD_TILES=true BUILD_TRANSIT=true \
+           BUILD_TIMEZONES=true CREATE_TAR=true ;;
     --build-admins) BUILD_ADMINS=true ;;
     --build-config) BUILD_CONFIG=true ;;
     --build-timezones) BUILD_TIMEZONES=true ;;
@@ -89,6 +89,7 @@ CONFIG_COMMON="--loki-service-defaults-minimum-reachability 50 \
 --service-limits-transit-max-locations 50000 \
 --service-limits-transit-max-matrix-locations 5000 \
 --thor-logging-long-request 1100.0"
+
 # Change dir values in config depending on type of build
 if [ $WITH_DOCKER = true ]
 then
@@ -118,21 +119,23 @@ cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
-cmd_chown_data="chown -R ${UID}:${GROUPS} /data/valhalla"
+cmd_chown_data="chown -R ${UID} /data/valhalla"
 
 # Switch to data dir - Exit script if it fails
 cd "${DATA_DIR}" || { echo "${DATA_DIR} not found. Please create it before" \
                          "running this script again" && exit 1; }
+
+#Cleanup data dir before anything else runs, if requested
+if [[ $CLEAN_DATA = true && "${PWD}" = "${DATA_DIR}" ]]
+then
+  rm -rf *
+fi
 
 # Download OSM file if it doesn't exist or was updated
 wget --timestamping --backups=1 "${OSM_FILE_URL}"
 
 if [ $WITH_DOCKER = true ]
 then
-  if [ $CLEAN_DATA = true ]
-  then
-    rm -rf /data/valhalla/*
-  fi
   if [ $BUILD_CONFIG = true ]
   then
     eval $docker_run $volume1 $docker_image $cmd_build_config
@@ -159,10 +162,6 @@ then
   fi
   eval $docker_run $volume1 $docker_image $cmd_chown_data
 else
-  if [ $CLEAN_DATA = true ]
-  then
-    rm -rf "${DATA_DIR}/*"
-  fi
   if [ $BUILD_CONFIG = true ]
   then
     eval $cmd_build_config
@@ -185,6 +184,6 @@ else
   fi
   if [ $CREATE_TAR = true ]
   then
-  eval $cmd_create_tar
+    eval $cmd_create_tar
   fi
 fi

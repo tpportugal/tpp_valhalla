@@ -23,14 +23,15 @@ for arg in "$@"; do
 done
 
 # Command list
-run="docker run -d -p ${PORT}:${PORT}"
+run="docker run --shm-size 512M -d -p ${PORT}:${PORT}"
 volume1="-v ${DATA_DIR}:/data/valhalla"
 docker_image="tpportugal/tpp_valhalla:latest"
-cmd_start="valhalla_service ${DATA_DIR}/${CONFIG_FILE} 1"
+cmd_start="bash -c \"valhalla_service ${CONFIG_FILE} 1 >> valhalla_service.log 2>&1\""
 
 if [ $WITH_DOCKER = true ]
 then
   eval $run $volume1 $docker_image $cmd_start
 else
+  cd "${DATA_DIR}"
   eval $cmd_start
 fi
