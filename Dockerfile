@@ -57,15 +57,15 @@ RUN apt-get -qq update && \
     zlib1g-dev \
     unzip
 # Mount data A.K.A "ADD" after packages installation for docker caching
-COPY . libvalhalla/
-WORKDIR libvalhalla
+COPY . /data/valhalla/libvalhalla/
+WORKDIR /data/valhalla/libvalhalla
 RUN ./autogen.sh && \
     ./configure --enable-static=yes && \
     make test -j$(nproc) && \
     make install && \
     make clean
 WORKDIR /data/valhalla
-RUN rm -rf libvalhalla && \
+RUN rm -rf /data/valhalla/libvalhalla && \
     ldconfig
 RUN apt-get -y purge  \
     autoconf \
