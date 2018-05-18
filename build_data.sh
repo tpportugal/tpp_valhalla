@@ -24,10 +24,12 @@ for arg in "$@"; do
            BUILD_TIMEZONES=true CREATE_TAR=true ;;
     --build-admins) BUILD_ADMINS=true ;;
     --build-config) BUILD_CONFIG=true ;;
+    --build-tiles) BUILD_TILES=true ;;
     --build-timezones) BUILD_TIMEZONES=true ;;
     --build-transit) BUILD_TRANSIT=true ;;
     --clean-data) CLEAN_DATA=true ;;
     --config-file=*) CONFIG_FILE="${arg#*=}" ;;
+    --create-tar) CREATE_TAR=true ;;
     --datastore-url=*) DATASTORE_URL="${arg#*=}" ;;
     --data-dir=*) DATA_DIR="${arg#*=}" ;;
     --osm-file=*) OSM_FILE="${arg#*=}" ;;
@@ -112,13 +114,13 @@ fi
 docker_run="docker run"
 volume1="-v ${DATA_DIR}:/data/valhalla"
 docker_image="tpportugal/tpp_valhalla:latest"
-cmd_build_config="valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS} > ${CONFIG_FILE}"
+cmd_build_config="bash -c \"valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS} > ${CONFIG_FILE}\""
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
 1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
-cmd_create_tar="find tiles | sort -n | tar cf tiles.tar --no-recursion -T -"
+cmd_create_tar="bash -c \"find tiles | sort -n | tar cf tiles.tar --no-recursion -T -\""
 cmd_chown_data="chown -R ${UID} /data/valhalla"
 
 # Switch to data dir - Exit script if it fails
