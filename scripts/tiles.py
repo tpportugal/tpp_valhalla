@@ -80,7 +80,7 @@ class Tile(object):
 
   def file(self, row, col, max_tile_id):
 
-     #get the tile id 
+     #get the tile id
      tile_id = (row * ncolumns_) + col
 
      max_length = self.digits(max_tile_id)
@@ -112,7 +112,7 @@ def check_args(argv):
    global level_
    global tilesize_
    global output_transit_dir_
-   
+
    configfile = ''
    try:
       opts, args = getopt.getopt(argv,"hc:",["cfile="])
@@ -131,7 +131,7 @@ def check_args(argv):
       print('tiles.py -c <config file: valhalla.json>')
       sys.exit()
 
-   with open(configfile) as config_file:    
+   with open(configfile) as config_file:
       valhalla_config = json.load(config_file)
 
       for level in valhalla_config['mjolnir']['hierarchy']['levels']:
@@ -139,7 +139,7 @@ def check_args(argv):
             if (level['name'] == 'local'):
                if 'level' in level.keys():
                   level_ = level['level']
-               else: 
+               else:
                   print('Using default level.')
                if 'size' in level.keys():
                   tilesize_ = level['size']
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
    now = time.strftime("%c")
    print ("Start time: %s" % now )
-  
+
    check_args(sys.argv[1:])
 
    directory = output_transit_dir_ + "/" + str(level_)
@@ -168,13 +168,13 @@ if __name__ == "__main__":
    bb_list = []
 
 #The following will obtain all the transit bounding boxes(BBs) from transit land.
-#If you only want to download your market, comment out the code 
-#from the begin to the end transitland BBs download sections.  
+#If you only want to download your market, comment out the code
+#from the begin to the end transitland BBs download sections.
 #Next, add your BB to the list in the custom BB section.  A
-#San Francisco BB is shown as an example.  
+#San Francisco BB is shown as an example.
 
 #<begin transitland BBs download>
-   tl_bb_url = 'http://dev.transit.land/api/v1/feeds.geojson'
+   tl_bb_url = 'http://tpp.pt/api/v1/feeds.geojson'
    tl_bbs = json_resource_t(tl_bb_url)
 
    for features in tl_bbs.kv.get('features', []):
@@ -192,7 +192,7 @@ if __name__ == "__main__":
       bb_list.append(Tile(minx,miny,maxx,maxy))
 #<end transitland BBs download>
 
-#custom BB 
+#custom BB
 #   minx = -123.0977
 #   miny = 36.9005
 #   maxx = -121.2520
@@ -214,30 +214,30 @@ if __name__ == "__main__":
 
    for row in xrange(0, nrows_):
       for col in xrange(0, ncolumns_):
-         
+
          #tile for world BB
          min_x = minx_ + (col * tilesize_)
          min_y = miny_ + (row * tilesize_)
-  	 max_x = min_x + tilesize_
+     max_x = min_x + tilesize_
          max_y = min_y + tilesize_
-                
+
          tile = Tile(min_x,min_y,max_x,max_y)
          #After we get the BBs from transitland we will check if any of the BBs
          #intersect this tile
 
          for tl_bb in bb_list:
 
-            if tile.intersects(tl_bb.minx,tl_bb.miny,tl_bb.maxx,tl_bb.maxy): 
-            
+            if tile.intersects(tl_bb.minx,tl_bb.miny,tl_bb.maxx,tl_bb.maxy):
+
                dictionary = defaultdict(list)
                file = tile.file( row, col, max_tile_id_)
 
-               url = 'http://tppgeo.cf/api/v1/stops?per_page=1000&bbox='
+               url = 'http://tpp.pt/api/v1/stops?per_page=1000&bbox='
                url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
                while url:
-               
+
                   tl_stops = json_resource_t(url)
                   meta = tl_stops.kv.get('meta', [])
 
@@ -248,7 +248,7 @@ if __name__ == "__main__":
                         onestops[onestop_id] = onestop_key
                         onestop_key = onestop_key + 1
                      tl_s['key'] = onestops[onestop_id]
-                  
+
                      dictionary['stops'].append(tl_s)
 
                   if not dictionary:
@@ -269,13 +269,13 @@ if __name__ == "__main__":
 
                stop_pairs = defaultdict(list)
 
-               url = 'http://tppgeo.cf/api/v1/schedule_stop_pairs?per_page=1000&bbox='
+               url = 'http://tpp.pt/api/v1/schedule_stop_pairs?per_page=1000&bbox='
                url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
 
                while url:
-                  print(url) 
+                  print(url)
 
                   tl_stop_pairs = json_resource_t(url)
                   meta = tl_stop_pairs.kv.get('meta', [])
@@ -286,7 +286,7 @@ if __name__ == "__main__":
                      map(tl_s_p.pop, ['origin_timezone','destination_timezone','pickup_type','drop_off_type', 'shape_dist_traveled','origin_arrival_time','destination_departure_time','window_start','window_end','origin_timepoint_source','destination_timepoint_source','created_at','updated_at'])
 
                      end_date = datetime.strptime(tl_s_p['service_end_date'],"%Y-%m-%d").date()
-                     
+
                      if current_date.date() <= end_date:
 
                         onestop_id = tl_s_p['origin_onestop_id']
@@ -294,26 +294,26 @@ if __name__ == "__main__":
                            onestops[onestop_id] = onestop_key
                            onestop_key = onestop_key + 1
                         tl_s_p['origin_key'] = onestops[onestop_id]
-                
+
                         onestop_id = tl_s_p['destination_onestop_id']
                         if onestop_id not in onestops:
                            onestops[onestop_id] = onestop_key
                            onestop_key = onestop_key + 1
-                        tl_s_p['destination_key'] = onestops[onestop_id] 
-                  
+                        tl_s_p['destination_key'] = onestops[onestop_id]
+
                         onestop_id = tl_s_p['route_onestop_id']
                         if onestop_id not in onestops:
                            onestops[onestop_id] = onestop_key
                            onestop_key = onestop_key + 1
                         tl_s_p['route_key'] = onestops[onestop_id]
-                  
+
                         block_id = tl_s_p['block_id']
                         if block_id is not None:
                            block = block_id + tl_s_p['route_onestop_id']
                            if block not in blocks:
                               blocks[block] = block_key
                               block_key = block_key + 1
-                           tl_s_p['block_key'] = blocks[block]			
+                           tl_s_p['block_key'] = blocks[block]
 
                         trip = tl_s_p['trip']
                         if trip not in trips:
@@ -341,8 +341,8 @@ if __name__ == "__main__":
 
                routes = defaultdict(list)
 
-               url = 'http://tppgeo.cf/api/v1/routes?per_page=1000&bbox='
-               url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y) 
+               url = 'http://tpp.pt/api/v1/routes?per_page=1000&bbox='
+               url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
 #hack due to BB issue
@@ -386,11 +386,11 @@ if __name__ == "__main__":
 
                with open(file, 'w') as f:
                   json.dump(dictionary, f, indent=2, sort_keys=True)
-               
+
                #break ensures that we don't download data for a tile more than once.
-               #a valhalla tile can intersect multiple markets. 
-               break 
-               
-   now = time.strftime("%c")   
+               #a valhalla tile can intersect multiple markets.
+               break
+
+   now = time.strftime("%c")
    print("End time: %s" % now )
 
