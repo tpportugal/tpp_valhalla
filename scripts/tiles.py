@@ -174,7 +174,7 @@ if __name__ == "__main__":
 #San Francisco BB is shown as an example.
 
 #<begin transitland BBs download>
-   tl_bb_url = 'http://tpp.pt/api/v1/feeds.geojson'
+   tl_bb_url = 'http://api.tpp.pt/v1/feeds.geojson'
    tl_bbs = json_resource_t(tl_bb_url)
 
    for features in tl_bbs.kv.get('features', []):
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                dictionary = defaultdict(list)
                file = tile.file( row, col, max_tile_id_)
 
-               url = 'http://tpp.pt/api/v1/stops?per_page=1000&bbox='
+               url = 'http://api.tpp.pt/v1/stops?per_page=1000&bbox='
                url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
@@ -269,7 +269,7 @@ if __name__ == "__main__":
 
                stop_pairs = defaultdict(list)
 
-               url = 'http://tpp.pt/api/v1/schedule_stop_pairs?per_page=1000&bbox='
+               url = 'http://api.tpp.pt/v1/schedule_stop_pairs?per_page=1000&bbox='
                url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
@@ -341,7 +341,7 @@ if __name__ == "__main__":
 
                routes = defaultdict(list)
 
-               url = 'http://tpp.pt/api/v1/routes?per_page=1000&bbox='
+               url = 'http://api.tpp.pt/v1/routes?per_page=1000&bbox='
                url += str(min_x) + ',' + str(min_y) + ',' + str(max_x) + ',' + str(max_y)
                url += '&api_key='
                url += api_key
