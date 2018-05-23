@@ -20,13 +20,14 @@
 #include "mjolnir/util.h"
 #include "odin/directionsbuilder.h"
 #include "odin/util.h"
-#include "proto/directions_options.pb.h"
-#include "proto/tripdirections.pb.h"
-#include "proto/trippath.pb.h"
 #include "sif/costfactory.h"
 #include "thor/bidirectional_astar.h"
 #include "thor/pathalgorithm.h"
 #include "thor/trippathbuilder.h"
+
+#include <valhalla/proto/directions_options.pb.h>
+#include <valhalla/proto/tripdirections.pb.h>
+#include <valhalla/proto/trippath.pb.h>
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -222,11 +223,7 @@ int main(int argc, char* argv[]) {
   //  return EXIT_SUCCESS;
 
   CostFactory<DynamicCost> factory;
-  factory.Register("auto", CreateAutoCost);
-  factory.Register("auto_shorter", CreateAutoShorterCost);
-  factory.Register("bus", CreateBusCost);
-  factory.Register("bicycle", CreateBicycleCost);
-  factory.Register("pedestrian", CreatePedestrianCost);
+  factory.RegisterStandardCostingModels();
 
   // Figure out the route type
   std::string routetype = "auto";
