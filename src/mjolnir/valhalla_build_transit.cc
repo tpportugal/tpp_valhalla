@@ -225,6 +225,7 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
   pt_curler_t curler;
   auto request = url("/api/v1/feeds.geojson?per_page=false", pt);
   request += transit_bounding_box;
+  request += import_level;
   auto feeds = curler(request, "features");
   for (const auto& feature : feeds.get_child("features")) {
 
