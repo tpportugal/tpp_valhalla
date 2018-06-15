@@ -393,7 +393,7 @@ void FindOSMConnection(const PointLL& stop_ll,
                        std::tuple<PointLL, float, int>& closest) {
   // Let's try a fallback.  Use approximator to find the closest edge.
   // We do this because the associated way could have been deleted from the
-  // OSM data, but we may have not updated the stops yet in TransitLand.
+  // OSM data, but we may have not updated the stops yet in TPP.
   float mindist = 10000000.0f;
   uint32_t edgelength = 0;
   float rm = kMetersPerKm; // one km

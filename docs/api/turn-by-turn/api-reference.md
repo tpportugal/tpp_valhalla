@@ -101,10 +101,10 @@ These options are available for `auto`, `auto_shorter`, and `bus` costing method
 ##### Bicycle costing options
 The default bicycle costing is tuned toward road bicycles with a slight preference for using [cycleways](http://wiki.openstreetmap.org/wiki/Key:cycleway) or roads with bicycle lanes. Bicycle routes use regular roads where needed or where no direct bicycle lane options exist, but avoid roads without bicycle access. The costing model recognizes several factors unique to bicycle travel and offers several options for tuning bicycle routes. Several factors unique to travel by bicycle influence the resulting route.
 
-*	The types of roads suitable for bicycling depend on the type of bicycle. Road bicycles (skinny or narrow tires) generally are suited to paved roads or perhaps very short sections of compacted gravel. They are not designed for riding on coarse gravel or most paths and tracks through wooded areas or farmland. Mountain bikes, on the other hand, are able to traverse a wider set of surfaces.
-*	Average travel speed can be highly variable and can depend on bicycle type, fitness and experience of the cyclist, road surface, and hills. The costing model assumes a default speed on smooth, flat roads for each supported bicycle type. This speed can be overridden by an input option. The base speed is modulated by surface type (in conjunction with the bicycle type). In addition, speed is modified based on the hilliness of a road section.
-*	Bicyclists vary in their tolerance for riding on roads. Most novice bicyclists, and even other bicyclists, prefer cycleways and dedicated cycling paths and would rather avoid all but the quietest neighborhood roads. Other cyclists may be experienced riding on roads and prefer to take roadways because they often provide the fastest way to get between two places. The bicycle costing model accounts for this with a `use_roads` factor to indicate a cyclist's tolerance for riding on roads.
-*	Bicyclists vary in their fitness level and experience level, and many want to avoid hilly roads, and especially roads with very steep uphill or even downhill sections. Even if the fastest path is over a mountain, many cyclists prefer a flatter path that avoids the climb and descent up and over the mountain.
+* The types of roads suitable for bicycling depend on the type of bicycle. Road bicycles (skinny or narrow tires) generally are suited to paved roads or perhaps very short sections of compacted gravel. They are not designed for riding on coarse gravel or most paths and tracks through wooded areas or farmland. Mountain bikes, on the other hand, are able to traverse a wider set of surfaces.
+* Average travel speed can be highly variable and can depend on bicycle type, fitness and experience of the cyclist, road surface, and hills. The costing model assumes a default speed on smooth, flat roads for each supported bicycle type. This speed can be overridden by an input option. The base speed is modulated by surface type (in conjunction with the bicycle type). In addition, speed is modified based on the hilliness of a road section.
+* Bicyclists vary in their tolerance for riding on roads. Most novice bicyclists, and even other bicyclists, prefer cycleways and dedicated cycling paths and would rather avoid all but the quietest neighborhood roads. Other cyclists may be experienced riding on roads and prefer to take roadways because they often provide the fastest way to get between two places. The bicycle costing model accounts for this with a `use_roads` factor to indicate a cyclist's tolerance for riding on roads.
+* Bicyclists vary in their fitness level and experience level, and many want to avoid hilly roads, and especially roads with very steep uphill or even downhill sections. Even if the fastest path is over a mountain, many cyclists prefer a flatter path that avoids the climb and descent up and over the mountain.
 
 The following options described above for autos also apply to bicycle costing methods: `maneuver_penalty`, `gate_cost`, `gate_penalty`, `country_crossing_cost`, and `country_costing_penalty`.
 
@@ -166,15 +166,15 @@ These options are available for transit costing when the multimodal costing mode
 | `use_transfers` |User's desire to favor transfers. Range of values from 0 (try to avoid transfers) to 1 (totally comfortable with transfers).|
 | `transit_start_end_max_distance` | A pedestrian option that can be added to the request to extend the defaults (2145 meters or approximately 1.5 miles). This is the maximum walking distance at the beginning or end of a route.|
 | `transit_transfer_max_distance` | A pedestrian option that can be added to the request to extend the defaults (800 meters or 0.5 miles). This is the maximum walking distance between transfers.|
-| `filters` | A way to filter for one or more `stops`, `routes`, or `operators`. Filters must contain a list of [Onestop IDs](https://transit.land/documentation/onestop-id-scheme/), which is a unique identifier for Transitland data, and an `action`. <ul><li>`ids`: any number of Onestop IDs (such as o-9q9-bart)</li><li>`action`: either `exclude` to exclude all of the `ids` listed in the filter or `include` to include only the `ids` listed in the filter</li></ul>
+| `filters` | A way to filter for one or more `stops`, `routes`, or `operators`. Filters must contain a list of [Onestop IDs](https://docs.tpp.pt/onestop-id-scheme/), which is a unique identifier for TPP data, and an `action`. <ul><li>`ids`: any number of Onestop IDs (such as o-9q9-bart)</li><li>`action`: either `exclude` to exclude all of the `ids` listed in the filter or `include` to include only the `ids` listed in the filter</li></ul>
 
 ###### Filter transit data
 
-When using `filters`, you need to include a [Onestop ID](https://transit.land/documentation/onestop-id-scheme/) to identify the stop, routes, or operators to include or exclude in your query. Depending on how you are interacting with transit data from Transitland, there are different ways of obtaining the Onestop ID.
+When using `filters`, you need to include a [Onestop ID](https://docs.tpp.pt/onestop-id-scheme/) to identify the stop, routes, or operators to include or exclude in your query. Depending on how you are interacting with transit data from TPP, there are different ways of obtaining the Onestop ID.
 
 - Turn-by-Turn API: Query a transit route query and parse the returned JSON maneuver  for `transit_info` to find `operator_onestop_id` and the route `onestop_id`. A `transit_stop` contains the `onestop_id` for the stop.
-- [Mobility Explorer](https://github.com/transitland/mobility-explorer): Click a single route, stop, or operator on the map, or use the drop-down menu to find the Onestop ID for routes and operators. The Onestop ID, among other details, is listed in the sidebar. 
-- [Transitland](https://transit.land/): Use the Transitland Datastore API to query directly for stops, routes, and operators using a number of options. For example, you can filter for only [subway routes](http://transit.land/api/v1/routes?vehicle_type=metro) or [bus routes](http://transit.land/api/v1/routes?vehicle_type=bus). See the [Transitland Datastore API documentation](https://transit.land/documentation/datastore/api-endpoints.html) for details.
+- [Mobility Explorer](https://github.com/tpportugal/tpp_explorador): Click a single route, stop, or operator on the map, or use the drop-down menu to find the Onestop ID for routes and operators. The Onestop ID, among other details, is listed in the sidebar.
+- [TPP](https://api.tpp.pt/): Use the TPP Datastore API to query directly for stops, routes, and operators using a number of options. For example, you can filter for only [subway routes](http://api.tpp.pt/v1/routes?vehicle_type=metro) or [bus routes](http://api.tpp.pt/v1/routes?vehicle_type=bus). See the [TPP Datastore API documentation](https://docs.tpp.pt/datastore/api-endpoints.html) for details.
 
 ##### Sample JSON payloads for multimodal requests with transit
 
@@ -360,14 +360,14 @@ A maneuver `transit_info` includes:
 
 | Maneuver transit route item | Description |
 | :--------- | :---------- |
-| `onestop_id` | Global transit route identifier from Transitland. |
+| `onestop_id` | Global transit route identifier from TPP. |
 | `short_name` | Short name describing the transit route. For example "N". |
 | `long_name` | Long name describing the transit route. For example "Broadway Express". |
 | `headsign` | The sign on a public transport vehicle that identifies the route destination to passengers. For example "ASTORIA - DITMARS BLVD". |
 | `color` | The numeric color value associated with a transit route. The value for yellow would be "16567306". |
 | `text_color` | The numeric text color value associated with a transit route. The value for black would be "0". |
 | `description` | The description of the the transit route. For example "Trains operate from Ditmars Boulevard, Queens, to Stillwell Avenue, Brooklyn, at all times. N trains in Manhattan operate along Broadway and across the Manhattan Bridge to and from Brooklyn. Trains in Brooklyn operate along 4th Avenue, then through Borough Park to Gravesend. Trains typically operate local in Queens, and either express or local in Manhattan and Brooklyn, depending on the time. Late night trains operate via Whitehall Street, Manhattan. Late night service is local". |
-| `operator_onestop_id` | Global operator/agency identifier from Transitland. |
+| `operator_onestop_id` | Global operator/agency identifier from TPP. |
 | `operator_name` | Operator/agency name. For example, "BART", "King County Marine Division", and so on.  Short name is used over long name. |
 | `operator_url` | Operator/agency URL. For example, "http://web.mta.info/". |
 | `transit_stops` | A list of the stops/stations associated with a specific transit route. See below for details. |
@@ -377,7 +377,7 @@ A `transit_stop` includes:
 | Transit stop item | Description |
 | :--------- | :---------- |
 | `type` | Type of stop (simple stop=0; station=1). |
-| `onestop_id` | Global transit stop identifier from Transitland. |
+| `onestop_id` | Global transit stop identifier from TPP. |
 | `name` | Name of the stop or station. For example "14 St - Union Sq". |
 | `arrival_date_time` | Arrival date and time using the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format (YYYY-MM-DDThh:mm). For example, "2015-12-29T08:06". |
 | `departure_date_time` | Departure date and time using the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format (YYYY-MM-DDThh:mm). For example, "2015-12-29T08:06". |

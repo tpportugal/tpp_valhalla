@@ -167,13 +167,13 @@ if __name__ == "__main__":
 
    bb_list = []
 
-#The following will obtain all the transit bounding boxes(BBs) from transit land.
+#The following will obtain all the transit bounding boxes(BBs) from TPP.
 #If you only want to download your market, comment out the code
-#from the begin to the end transitland BBs download sections.
+#from the begin to the end TPP BBs download sections.
 #Next, add your BB to the list in the custom BB section.  A
 #San Francisco BB is shown as an example.
 
-#<begin transitland BBs download>
+#<begin TPP BBs download>
    tl_bb_url = 'http://api.tpp.pt/v1/feeds.geojson'
    tl_bbs = json_resource_t(tl_bb_url)
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
       maxy = coords[2][1]
 
       bb_list.append(Tile(minx,miny,maxx,maxy))
-#<end transitland BBs download>
+#<end TPP BBs download>
 
 #custom BB
 #   minx = -123.0977
@@ -222,7 +222,7 @@ if __name__ == "__main__":
          max_y = min_y + tilesize_
 
          tile = Tile(min_x,min_y,max_x,max_y)
-         #After we get the BBs from transitland we will check if any of the BBs
+         #After we get the BBs from TPP we will check if any of the BBs
          #intersect this tile
 
          for tl_bb in bb_list:
@@ -347,7 +347,7 @@ if __name__ == "__main__":
                url += api_key
 #hack due to BB issue
 #            if (min_x == -121.75 and min_y == 37.0 and max_x == -121.5 and max_y == 37.25):
-#               url = 'http://tppgeo.cf/api/v1/routes?per_page=1000'
+#               url = 'http://api.tpp.pt/v1/routes?per_page=1000'
 
                while url:
                   print(url)
@@ -393,4 +393,3 @@ if __name__ == "__main__":
 
    now = time.strftime("%c")
    print("End time: %s" % now )
-

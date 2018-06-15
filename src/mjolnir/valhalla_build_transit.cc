@@ -223,7 +223,7 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
   std::set<GraphId> tiles;
   const auto& tile_level = TileHierarchy::levels().rbegin()->second;
   pt_curler_t curler;
-  auto request = url("/api/v1/feeds.geojson?per_page=false", pt);
+  auto request = url("/v1/feeds.geojson?per_page=false", pt);
   request += transit_bounding_box;
   request += import_level;
   auto feeds = curler(request, "features");
@@ -291,7 +291,7 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
     bbox = AABB2<PointLL>(bbox.minx(), min_y, bbox.maxx(), max_y);
     // stop count
     auto request =
-        url((boost::format("/api/v1/stop_stations?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%") %
+        url((boost::format("/v1/stop_stations?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%") %
              bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
             pt);
@@ -300,12 +300,12 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
     auto stations_total = curler(request, "meta.total").get<size_t>("meta.total");
     /*
     //route count
-    request = url((boost::format("/api/v1/routes?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%")
+    request = url((boost::format("/v1/routes?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%")
       % bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy()).str(), pt);
     auto routes_total = curler(request, "meta.total").get<size_t>("meta.total");
     //pair count
     request =
-    url((boost::format("/api/v1/schedule_stop_pairs?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%&service_from_date=%5%-%6%-%7%")
+    url((boost::format("/v1/schedule_stop_pairs?total=true&per_page=0&bbox=%1%,%2%,%3%,%4%&service_from_date=%5%-%6%-%7%")
       % bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy() % utc->tm_year % utc->tm_mon %
     utc->tm_mday).str(), pt); auto pairs_total = curler(request,
     "meta.total").get<size_t>("meta.total");
@@ -845,7 +845,7 @@ void fetch_tiles(const ptree& pt,
     // just the platforms
     std::unordered_map<std::string, uint64_t> platforms;
     boost::optional<std::string> request =
-        url((boost::format("/api/v1/stop_stations?total=false&per_page=1000&bbox=%1%,%2%,%3%,%4%") %
+        url((boost::format("/v1/stop_stations?total=false&per_page=1000&bbox=%1%,%2%,%3%,%4%") %
              bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
             pt);
@@ -868,7 +868,7 @@ void fetch_tiles(const ptree& pt,
 
     // pull out all operator WEBSITES
     request =
-        url((boost::format("/api/v1/operators?total=false&per_page=%1%&bbox=%2%,%3%,%4%,%5%") %
+        url((boost::format("/v1/operators?total=false&per_page=%1%&bbox=%2%,%3%,%4%,%5%") %
              pt.get<std::string>("per_page") % bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
             pt);
@@ -900,7 +900,7 @@ void fetch_tiles(const ptree& pt,
     // pull out all ROUTES
     request =
         url((boost::format(
-                 "/api/v1/"
+                 "/v1/"
                  "routes?total=false&include_geometry=false&per_page=%1%&bbox=%2%,%3%,%4%,%5%") %
              pt.get<std::string>("per_page") % bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
@@ -923,7 +923,7 @@ void fetch_tiles(const ptree& pt,
     std::unordered_map<std::string, size_t> shapes;
     for (const auto& route : routes) {
       request = url((boost::format(
-                         "/api/v1/route_stop_patterns?total=false&per_page=100&traversed_by=%2%") %
+                         "/v1/route_stop_patterns?total=false&per_page=100&traversed_by=%2%") %
                      pt.get<std::string>("per_page") % url_encode(route.first))
                         .str(),
                     pt);
@@ -941,7 +941,7 @@ void fetch_tiles(const ptree& pt,
     bool dangles = false;
     for (const auto& platform : platforms) {
 
-      request = url((boost::format("/api/v1/"
+      request = url((boost::format("/v1/"
                                    "schedule_stop_pairs?active=true&total=false&per_page=%1%&"
                                    "origin_onestop_id=%2%&service_from_date=%3%-%4%-%5%") %
                      pt.get<std::string>("per_page") % url_encode(platform.first) % utc->tm_year %
@@ -2232,7 +2232,7 @@ void build_tiles(const boost::property_tree::ptree& pt,
       }
 
       // TODO Get any transfers from this stop (no transfers currently
-      // available from Transitland)
+      // available from TPP)
       // AddTransfers(tilebuilder);
 
       // Add to stop edge map - track edges that need to be added. This is
@@ -2374,12 +2374,12 @@ void build(const ptree& pt,
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Usage: " << std::string(argv[0])
-              << " valhalla_config transit_land_url per_page [target_directory] [bounding_box]"
-                 "[transit_land_api_key]"
+              << " valhalla_config tpp_url per_page [target_directory] [bounding_box]"
+                 "[tpp_api_key]"
               << std::endl;
     std::cerr << "Sample: " << std::string(argv[0])
-              << " conf/valhalla.json http://transit.land/ 1000 ./transit_tiles "
-                 "-31.56,36.63,-6.18,42.16 transitland-YOUR_KEY_SUFFIX"
+              << " conf/valhalla.json http://api.tpp.pt/ 1000 ./transit_tiles "
+                 "-31.56,36.63,-6.18,42.16 tpp-YOUR_KEY_SUFFIX"
               << std::endl;
     return 1;
   }

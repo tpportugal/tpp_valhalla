@@ -9,9 +9,9 @@ Valhalla routing tiles are created from several different open data sets. We owe
 
 All OpenStreetMap data is licensed under the [ODbL](http://opendatacommons.org/licenses/odbl/), a [share-alike](https://en.wikipedia.org/wiki/Share-alike) license, which also requires attribution.
 
-## Transitland
+## TPP
 
-[Transitland](https://transit.land/) provides public transit information to Valhalla. This data is connected to the OSM road and path network to provide seamless multimodal routing. A licensing overview of Transitland is provided [here](https://transit.land/an-open-project/). Transit feed license details can be found [here](https://transit.land/feed-registry/).
+[TPP](https://docs.tpp.pt/) provides public transit information to Valhalla. This data is connected to the OSM road and path network to provide seamless multimodal routing. A licensing overview of TPP is provided [here](https://docs.tpp.pt/an-open-project/). Transit feed license details can be found [here](https://api.tpp.pt/feed-registry/).
 
 ## Elevation data
 

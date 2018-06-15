@@ -68,11 +68,11 @@ The Valhalla team has plans to improving the polygon isochrone output and render
 
 ## Isochrone demonstration in Mobility Explorer
 
-The open-source [Mobility Explorer](https://github.com/transitland/mobility-explorer) tool helps you understand transportation networks around the world and has tools for adding isochrones to a map. Search for a location and add a point to the map, then generate isochrones for certain modes of transit from that location.
+The open-source [Mobility Explorer](https://github.com/tpportugal/tpp_explorador) tool helps you understand transportation networks around the world and has tools for adding isochrones to a map. Search for a location and add a point to the map, then generate isochrones for certain modes of transit from that location.
 
 ## Future work on the isochrone service
 
-The Isochrone service is in active development. To report software issues or suggest enhancements, open an issue in the [Valhalla GitHub repository](https://github.com/valhalla/valhalla/issues).
+The Isochrone service is in active development. To report software issues or suggest enhancements, open an issue in the [Valhalla GitHub repository](https://github.com/tpportugal/tpp_valhalla/issues).
 
 Several other options are being considered as future service enhancements. These include:
 

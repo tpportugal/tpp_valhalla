@@ -764,7 +764,7 @@ TripPathBuilder::Build(const AttributesController& controller,
   sif::TravelMode prev_mode = sif::TravelMode::kPedestrian;
   uint64_t osmchangeset = 0;
   size_t edge_index = 0;
-  // TODO: this is temp until we use transit stop type from transitland
+  // TODO: this is temp until we use transit stop type from TPP
   TransitPlatformInfo_Type prev_transit_node_type = TransitPlatformInfo_Type_kStop;
   for (auto edge_itr = path.begin(); edge_itr != path.end(); ++edge_itr, ++edge_index) {
     const GraphId& edge = edge_itr->edgeid;
@@ -837,7 +837,7 @@ TripPathBuilder::Build(const AttributesController& controller,
       TransitPlatformInfo* transit_platform_info = trip_node->mutable_transit_platform_info();
 
       // TODO: for now we will set to station for rail and stop for others
-      //       in future, we will set based on transitland value
+      //       in future, we will set based on TPP value
       // Set type
       if (directededge->use() == Use::kRail) {
         // Set node transit info type if requested
