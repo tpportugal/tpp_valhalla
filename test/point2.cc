@@ -3,6 +3,7 @@
 #include "test.h"
 
 #include <list>
+#include <unordered_map>
 #include <vector>
 
 #include "midgard/vector2.h"
@@ -86,7 +87,7 @@ void TryClosestPoint(const std::vector<Point2>& pts,
                      const float res) {
   auto result = p.ClosestPoint(pts);
   if (fabs(std::get<1>(result) - res) > kEpsilon)
-    throw runtime_error("ClosestPoint test failed - distance squared is wrong");
+    throw runtime_error("ClosestPoint test failed - distance is wrong");
   if (idx != std::get<2>(result))
     throw runtime_error("ClosestPoint test failed -index of closest segment is wrong");
   if (fabs(c.x() - std::get<0>(result).x()) > kEpsilon ||
@@ -94,17 +95,27 @@ void TryClosestPoint(const std::vector<Point2>& pts,
     throw runtime_error("ClosestPoint test failed - closest point is wrong");
 }
 void TestClosestPoint() {
-  // Construct a simple polyline
-  std::vector<Point2> pts = {{0.0f, 0.0f}, {2.0f, 2.0f}, {4.0f, 2.0f}, {4.0f, 0.0f}, {12.0f, 0.0f}};
+  // Construct a simple polyline (duplicate a point to make sure it is properly skipped)
+  std::vector<Point2> pts = {{0.0f, 0.0f}, {2.0f, 2.0f}, {4.0f, 2.0f},
+                             {4.0f, 0.0f}, {4.0f, 0.0f}, {12.0f, 0.0f}};
 
   // Closest to the first point
   TryClosestPoint(pts, Point2(-4.0f, 0.0f), Point2(0.0f, 0.0f), 0, 4.0f);
 
   // Closest along the last segment
-  TryClosestPoint(pts, Point2(10.0f, -4.0f), Point2(10.0f, 0.0f), 3, 4.0f);
+  TryClosestPoint(pts, Point2(10.0f, -4.0f), Point2(10.0f, 0.0f), 4, 4.0f);
 
   // Closest to the last point
-  TryClosestPoint(pts, Point2(15.0f, 4.0f), Point2(12.0f, 0.0f), 3, 5.0f);
+  TryClosestPoint(pts, Point2(15.0f, 4.0f), Point2(12.0f, 0.0f), 4, 5.0f);
+
+  // Test ClosestPoint with empty vector
+  std::vector<Point2> empty_pts;
+  TryClosestPoint(empty_pts, Point2(5.0f, 0.0f), Point2(0.0f, 0.0f), 0,
+                  std::numeric_limits<float>::max());
+
+  // Test ClosestPoint with only 1 point in the list
+  std::vector<Point2> pts1 = {{1.0f, 0.0f}};
+  TryClosestPoint(pts1, Point2(5.0f, 0.0f), Point2(1.0f, 0.0f), 0, 4.0f);
 }
 
 void TryWithinConvexPolygon(const std::vector<Point2>& pts, const Point2& p, const bool res) {
@@ -146,6 +157,21 @@ void TestWithinConvexPolygon() {
   TryWithinConvexPolygonList(ptslist, Point2(0.0f, 0.0f), true);
 }
 
+void TestHash() {
+  Point2 a(10.5f, -100.0f);
+  std::unordered_map<Point2, int> m{{a, 1}};
+  if (m.find(a) == m.cend()) {
+    throw std::logic_error("Should have found a");
+  }
+  Point2 b(1.5f, 1.0f);
+  if (!m.insert({b, 2}).second) {
+    throw std::logic_error("Should not have found b");
+  }
+  if (m.find(b) == m.cend()) {
+    throw std::logic_error("Should have found b");
+  }
+}
+
 } // namespace
 
 int main() {
@@ -177,6 +203,9 @@ int main() {
 
   // Test if within polygon
   suite.test(TEST_CASE(TestWithinConvexPolygon));
+
+  // Test hashing
+  suite.test(TEST_CASE(TestHash));
 
   return suite.tear_down();
 }

@@ -1,5 +1,14 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d75b178c15d143dd978726fbc364e154)](https://app.codacy.com/app/TPP/tpp_valhalla?utm_source=github.com&utm_medium=referral&utm_content=tpportugal/tpp_valhalla&utm_campaign=badger)
 
+## :rotating_light: UNDER CONSTRUCTION - MASTER NOT STABLE :rotating_light:
+While Valhalla on v3.0 is under development, we recommend that you use the last stable release, [2.6.1](https://github.com/valhalla/valhalla/releases/tag/2.6.1) until further notice.
+
+Pull requests against master are still welcome, though one may need to pay extra attention to the breaking changes in progress.
+
+---
+
+
+
      ██▒   █▓ ▄▄▄       ██▓     ██░ ██  ▄▄▄       ██▓     ██▓    ▄▄▄
     ▓██░   █▒▒████▄    ▓██▒    ▓██░ ██▒▒████▄    ▓██▒    ▓██▒   ▒████▄
      ▓██  █▒░▒██  ▀█▄  ▒██░    ▒██▀▀██░▒██  ▀█▄  ▒██░    ▒██░   ▒██  ▀█▄
@@ -76,14 +85,19 @@ And stop it with
 
 If you wish to do it all by yourself or use other system, use the intructions below.
 
+Building from Source
+--------------------
+
+Valhalla uses CMake as build system.
+
 To install on a Debian or Ubuntu system you need to install its dependencies with:
 
 ```bash
 sudo add-apt-repository -y ppa:valhalla-core/valhalla
 sudo apt-get update
-sudo apt-get install -y autoconf automake make libtool pkg-config g++ gcc jq lcov protobuf-compiler vim-common libboost-all-dev libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libprime-server0.6.3-dev libprotobuf-dev prime-server0.6.3-bin
+sudo apt-get install -y cmake make libtool pkg-config g++ gcc jq lcov protobuf-compiler vim-common libboost-all-dev libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libprime-server0.6.3-dev libprotobuf-dev prime-server0.6.3-bin
 #if you plan to compile with data building support, see below for more info
-sudo apt-get install -y libgeos-dev libgeos++-dev liblua5.2-dev libspatialite-dev libsqlite3-dev lua5.2
+sudo apt-get install -y libgeos-dev libgeos++-dev liblua5.2-dev libspatialite-dev libsqlite3-dev lua5.2 wget
 if [[ $(grep -cF xenial /etc/lsb-release) > 0 ]]; then sudo apt-get install -y libsqlite3-mod-spatialite; fi
 #if you plan to compile with python bindings, see below for more info
 sudo apt-get install -y python-all-dev
@@ -91,34 +105,40 @@ sudo apt-get install -y python-all-dev
 
 To install on macOS, you need to install its dependencies with [Homebrew](http://brew.sh):
 
-    # install dependencies (czmq is required by prime_server)
-    brew install autoconf automake libtool protobuf-c boost-python libspatialite pkg-config sqlite3 lua jq curl czmq lz4
+```bash
+# install dependencies (czmq is required by prime_server)
+brew install cmake libtool protobuf-c boost-python libspatialite pkg-config sqlite3 lua jq curl wget czmq lz4
+```
 
-    # clone and build prime_server https://github.com/kevinkreiser/prime_server#build-and-install
+Then clone and build [`prime_server`](https://github.com/kevinkreiser/prime_server#build-and-install).
 
 After getting the dependencies install it with:
 
 ```bash
 git submodule update --init --recursive
-./autogen.sh
-# on macOS you need to tell linkers how to reach home-brewed sqlite3 and curl:
-# export LDFLAGS="-L/usr/local/opt/sqlite/lib/ -lsqlite3" PKG_CONFIG_PATH=/usr/local/opt/curl/lib/pkgconfig
-./configure
-make test -j$(nproc)
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
 sudo make install
-# Note: on macOS, a few tests involving time formatting will fail: narrativebuilder, util_odin, mapmatch
 ```
 
-Please see `./configure --help` for more options on how to control the build process. There are a few notable options that you might want to try out:
+Important build options include:
 
-* `--enable-data-tools=no` will disable building any of the components (library bits, executables and tests) which can be used to create the data that the services run on. This can be useful in embedded situations where you really don't need some of the dependencies above.
-* `--enable-services=no` will disable building any of the components (library bits, executables and tests) which can be used to run valhalla as an http service. This can be useful in embedded situations where you really don't need some of the dependencies above (prime_server et al).
-* `--enable-static=yes` will enable building of static libvalhalla.la which could be useful for embedded applications
-* `--enable-python-bindings=no` will disable python bindings for valhalla. Embedded applications would probably rather turn this off.
+| Option | Behavior |
+|--------|----------|
+| `-DENABLE_DATA_TOOLS` (`On`/`Off`) | Build the data preprocessing tools|
+| `-DENABLE_PYTHON_BINDINGS` (`On`/`Off`) | Build the python bindings|
+| `-DENABLE_SERVICES` (`On` / `Off`) | Build the HTTP service|
+| `-DBUILD_SHARED_LIBS` (`On` / `Off`) | Build static or shared libraries|
 
-The build will produce libraries, headers and binaries which you are free to use for your own projects. To simplify the inclusion of the libvalhalla in another autotoolized project you may make use of `pkg-config` within your own `configure.ac` to check for the existence of a recent version of the library. Something like this should suffice:
+For more build options run the interactive GUI:
 
-    PKG_CHECK_MODULES([VALHALLA_DEPS], [libvalhalla >= 2.0.6])
+```bash
+cd build
+cmake ..
+ccmake ..
+```
 
 For more information on binaries, see [Command Line Tools](#command-line-tools) section below and the [docs](docs).
 
@@ -164,19 +184,9 @@ We highly encourage running and updating the tests to make sure no regressions h
 
     make check
 
-You can also build a test coverage report. This requires that the packages `lcov`, `gcov` and `genhtml` be installed. On Ubuntu you can get these with:
+To run an individual test, `make run-<test name>` from the build directory or `./test/<testname>`
 
-    sudo apt-get install lcov
-
-To make the coverage report, configure the build for it:
-
-    ./configure --enable-coverage
-
-And generate an HTML coverage report in the `coverage/` directory:
-
-    make coverage-report
-
-Note also that, because calculating the coverage requires compiler support, you will need to clean any object files from a non-coverage build by running `make clean` before `make coverage-report`.
+Coverage reports are automatically generated using codecov for each pull request, but you can also build them locally by passing `-DENABLE_COVERAGE=On` and running `make coverage`.
 
 Command Line Tools
 ------------------
