@@ -845,7 +845,7 @@ void fetch_tiles(const ptree& pt,
     // just the platforms
     std::unordered_map<std::string, uint64_t> platforms;
     boost::optional<std::string> request =
-        url((boost::format("/v1/stop_stations?total=false&per_page=1000&bbox=%1%,%2%,%3%,%4%") %
+        url((boost::format("/v1/stop_stations?total=false&per_page=100&bbox=%1%,%2%,%3%,%4%") %
              bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
             pt);
@@ -899,9 +899,7 @@ void fetch_tiles(const ptree& pt,
 
     // pull out all ROUTES
     request =
-        url((boost::format(
-                 "/v1/"
-                 "routes?total=false&include_geometry=false&per_page=%1%&bbox=%2%,%3%,%4%,%5%") %
+        url((boost::format("/v1/routes?total=false&include_geometry=false&per_page=%1%&bbox=%2%,%3%,%4%,%5%") %
              pt.get<std::string>("per_page") % bbox.minx() % bbox.miny() % bbox.maxx() % bbox.maxy())
                 .str(),
             pt);
@@ -941,8 +939,7 @@ void fetch_tiles(const ptree& pt,
     bool dangles = false;
     for (const auto& platform : platforms) {
 
-      request = url((boost::format("/v1/"
-                                   "schedule_stop_pairs?active=true&total=false&per_page=%1%&"
+      request = url((boost::format("/v1/schedule_stop_pairs?active=true&total=false&per_page=%1%&"
                                    "origin_onestop_id=%2%&service_from_date=%3%-%4%-%5%") %
                      pt.get<std::string>("per_page") % url_encode(platform.first) % utc->tm_year %
                      utc->tm_mon % utc->tm_mday)

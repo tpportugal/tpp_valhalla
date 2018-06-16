@@ -61,9 +61,10 @@ WORKDIR /data/valhalla/libvalhalla
 RUN mkdir build && \
     cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    make test -j$(nproc) && \
+    make -j$(nproc) && \
+    make check && \
     make install && \
-    make clean
+    rm -rf /data/valhalla/libvalhalla/build
 WORKDIR /data/valhalla
 RUN rm -rf /data/valhalla/libvalhalla && \
     ldconfig

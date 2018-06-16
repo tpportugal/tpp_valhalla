@@ -14,7 +14,7 @@ DATASTORE_URL="http://localhost:8004"
 DATA_DIR="/data/valhalla"
 OSM_FILE="portugal-latest.osm.pbf"
 OSM_FILE_URL="http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
-TRANSIT_BBOX="31.56,29.89,-6.18,42.23"
+TRANSIT_BBOX="-31.56,29.89,-6.18,42.23"
 WITH_DOCKER=false
 
 for arg in "$@"; do
@@ -55,7 +55,7 @@ for arg in "$@"; do
               echo "  --osm-file-url=URL    URL to OSM .pbf file. Default is"
               echo "                          http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
               echo "  --transit-bbox=BBOX   Only get transit tiles for given bounding box. Default is"
-              echo "                          31.56,29.89,-6.18,42.23, which is Portugal."
+              echo "                          -31.56,29.89,-6.18,42.23, which is Portugal."
               echo "  --with-docker         Build with docker. False if ommited."
               echo "  --help, -h            Show this message"
     exit ;;
@@ -122,7 +122,7 @@ cmd_build_config="bash -c \"valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
-1000 transit ${TRANSIT_BBOX} 4"
+100 transit ${TRANSIT_BBOX} 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="bash -c \"find tiles | sort -n | tar cf tiles.tar --no-recursion -T -\""
 cmd_chown_data="chown -R ${UID} /data/valhalla"

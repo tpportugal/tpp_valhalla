@@ -21,7 +21,7 @@ done
 
 if [ $BUILD_CLEAN = true ]
 then
-    make clean
+    rm -rf build
 fi
 
 git submodule update --init --recursive
@@ -68,8 +68,8 @@ else
 
     mkdir build
     cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release
-    make test -j$(nproc)
+    cmake .. -DCMAKE_BUILD_TYPE=Debug
+    make check -j$(nproc)
     sudo make install
     sudo ldconfig
 fi
