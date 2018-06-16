@@ -1030,7 +1030,7 @@ void stitch(const ptree& pt,
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Usage: " << std::string(argv[0])
-              << " valhalla_config transit_land_url per_page [target_directory] [bounding_box] "
+              << " valhalla_config tpp_api_url per_page [target_directory] [bounding_box] "
                  "[tpp_api_key]"
               << std::endl;
     std::cerr << "Sample: " << std::string(argv[0])
