@@ -2448,10 +2448,8 @@ int main(int argc, char** argv) {
   stitch(pt, all_tiles, dangling_tiles);
 
   // update tile dir loc.  Don't want to overwrite the real transit tiles
-  if (argc > 4) {
-    pt.get_child("mjolnir").erase("tile_dir");
-    pt.add("mjolnir.tile_dir", std::string(argv[4]));
-  }
+  pt.get_child("mjolnir").erase("tile_dir");
+  pt.add("mjolnir.tile_dir", pt.get<std::string>("mjolnir.transit_dir"));
 
   build(pt, all_tiles, onestoptests);
   ValidateTransit::Validate(pt, all_tiles, onestoptests);
