@@ -12,7 +12,7 @@ ENV LC_ALL=pt_PT.UTF-8
 ENV LANG=pt_PT.UTF-8
 ENV LANGUAGE=pt_PT.UTF-8
 RUN apt-get -qq update && \
-    apt-get -q -y upgrade && \
+    apt-get -q -y upgrade --no-install-recommends && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:valhalla-core/valhalla
 RUN apt-get -qq update && \
@@ -58,8 +58,9 @@ RUN apt-get -qq update && \
 # Mount data A.K.A "ADD" after packages installation for docker caching
 COPY . /data/valhalla/libvalhalla/
 WORKDIR /data/valhalla/libvalhalla
-RUN ./autogen.sh && \
-    ./configure --enable-static=yes && \
+RUN mkdir build && \
+    cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release && \
     make test -j$(nproc) && \
     make install && \
     make clean

@@ -35,7 +35,7 @@ else
       sudo add-apt-repository -y ppa:"$PPA"
     fi
     sudo apt-get update
-    sudo apt-get upgrade -y
+    sudo apt-get upgrade -y --no-install-recommends
     sudo apt-get install -y --no-install-recommends \
     cmake \
     g++ \
@@ -65,8 +65,10 @@ else
     zlib1g-dev \
     unzip \
     wget
-    ./autogen.sh
-    ./configure
+
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_BUILD_TYPE=Release
     make test -j$(nproc)
     sudo make install
     sudo ldconfig
