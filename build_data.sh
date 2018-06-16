@@ -122,7 +122,7 @@ cmd_build_config="bash -c \"valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
-1000 transit ${TRANSIT_BBOX}"
+1000 transit ${TRANSIT_BBOX} 4"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="bash -c \"find tiles | sort -n | tar cf tiles.tar --no-recursion -T -\""
 cmd_chown_data="chown -R ${UID} /data/valhalla"
