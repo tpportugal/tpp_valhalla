@@ -7,12 +7,3 @@
 [submodule "proto"]
         path = third_party/OSMLR
         url = https://github.com/valhalla/osmlr-tile-spec.git
-[submodule "third_party/OSM-binary"]
-	path = third_party/OSM-binary
-	url = https://github.com/scrosby/OSM-binary.git
-[submodule "third_party/rapidjson"]
-	path = third_party/rapidjson
-	url = https://github.com/miloyip/rapidjson
-[submodule "third_party/OSMLR"]
-	path = third_party/OSMLR
-	url = https://github.com/valhalla/osmlr-tile-spec.git
