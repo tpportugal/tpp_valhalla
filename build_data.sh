@@ -162,7 +162,7 @@ then
   then
     eval $docker_run $volume1 $docker_image $cmd_build_tiles
   fi
-  if [ $CREATE_TAR = true ]
+  if [ $BUILD_TILES_TAR = true ]
   then
     eval $docker_run $volume1 $docker_image $cmd_create_tar
   fi
@@ -188,7 +188,7 @@ else
   then
     eval $cmd_build_tiles
   fi
-  if [ $CREATE_TAR = true ]
+  if [ $BUILD_TILES_TAR = true ]
   then
     eval $cmd_create_tar
   fi
