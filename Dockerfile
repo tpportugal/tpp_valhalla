@@ -17,8 +17,7 @@ RUN apt-get -qq update && \
     add-apt-repository -y ppa:valhalla-core/valhalla
 RUN apt-get -qq update && \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    automake \
+    cmake \
     g++ \
     gcc \
     jq \
@@ -68,8 +67,7 @@ WORKDIR /data/valhalla
 RUN rm -rf /data/valhalla/libvalhalla && \
     ldconfig
 RUN apt-get -y purge  \
-    autoconf \
-    automake \
+    cmake \
     g++ \
     gcc \
     lcov \

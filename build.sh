@@ -37,8 +37,7 @@ else
     sudo apt-get update
     sudo apt-get upgrade -y
     sudo apt-get install -y --no-install-recommends \
-    autoconf \
-    automake \
+    cmake \
     g++ \
     gcc \
     jq \
@@ -64,7 +63,8 @@ else
     python-all-dev \
     spatialite-bin \
     zlib1g-dev \
-    unzip
+    unzip \
+    wget
     ./autogen.sh
     ./configure
     make test -j$(nproc)
