@@ -2400,12 +2400,12 @@ int main(int argc, char** argv) {
     pt.add("mjolnir.transit_bounding_box", std::string(argv[5]));
   }
   if (argc > 6) {
-    pt.erase("api_key");
-    pt.add("api_key", std::string(argv[6]));
-  }
-  if (argc > 7) {
     pt.erase("import_level");
     pt.add("import_level", std::string(argv[7]));
+  }
+  if (argc > 7) {
+    pt.erase("api_key");
+    pt.add("api_key", std::string(argv[6]));
   }
 
   // yes we want to curl
