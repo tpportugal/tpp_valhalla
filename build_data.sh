@@ -5,55 +5,59 @@ BUILD_ALL=false
 BUILD_ADMINS=false
 BUILD_CONFIG=false
 BUILD_TILES=false
+BUILD_TILES_TAR=false
 BUILD_TIMEZONES=false
 BUILD_TRANSIT=false
 CLEAN_DATA=false
 CONFIG_FILE="config.json"
-CREATE_TAR=false
 DATASTORE_URL="http://localhost:8004"
 DATA_DIR="/data/valhalla"
 OSM_FILE="portugal-latest.osm.pbf"
 OSM_FILE_URL="http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
+TRANSIT_BBOX="31.56,29.89,-6.18,42.23"
 WITH_DOCKER=false
 
 for arg in "$@"; do
   shift
   case "$arg" in
     --all) BUILD_ADMINS=true BUILD_CONFIG=true \
-           BUILD_TILES=true BUILD_TRANSIT=true \
-           BUILD_TIMEZONES=true CREATE_TAR=true ;;
+           BUILD_TILES=true BUILD_TILES_TAR=true \
+           BUILD_TRANSIT=true BUILD_TIMEZONES=true ;;
     --build-admins) BUILD_ADMINS=true ;;
     --build-config) BUILD_CONFIG=true ;;
     --build-tiles) BUILD_TILES=true ;;
+    --build-tiles-tar) BUILD_TILES_TAR=true ;;
     --build-timezones) BUILD_TIMEZONES=true ;;
     --build-transit) BUILD_TRANSIT=true ;;
     --clean-data) CLEAN_DATA=true ;;
     --config-file=*) CONFIG_FILE="${arg#*=}" ;;
-    --create-tar) CREATE_TAR=true ;;
     --datastore-url=*) DATASTORE_URL="${arg#*=}" ;;
     --data-dir=*) DATA_DIR="${arg#*=}" ;;
     --osm-file=*) OSM_FILE="${arg#*=}" ;;
     --osm-file-url=*) OSM_FILE_URL="${arg#*=}";;
+    --transit-bbox=*) TRANSIT_BBOX="${arg#*=}" ;;
     --with-docker) WITH_DOCKER=true ;;
-    --help|-h|*) echo "Usage: ./build_tiles.sh [OPTIONS]"
+    --help|-h|*) echo "Usage: ./build_data.sh [OPTIONS]"
               echo "Available options:"
-              echo "  --all               All --build-* options true. False if ommited."
-              echo "  --build-admins      Build admins DB. False if ommited."
-              echo "  --build-config      Build config file. False if ommited."
-              echo "  --build-tiles       Build routing tiles. False if ommited."
-              echo "  --build-timezones   Build timezones DB. False if ommited."
-              echo "  --build-transit     Fetch and build transit tiles. False if ommited."
-              echo "  --clean-data        Cleanup files in data dir. False if ommited."
-              echo "  --config-file=FILE  Path to config file. Default is config.json"
-              echo "  --create-tar        Create tiles.tar file. False if ommited."
-              echo "  --datastore-url=URL URL of the Datastore API. Default is http://localhost:8004"
-              echo "  --data-dir=DIR      Path to Valhalla data dir. Default is /data/valhalla."
-              echo "                       Will be mounted as a volume if --with-docker."
-              echo "  --osm-file=FILE     Path to OSM .pbf file. Default is portugal-latest.osm.pbf"
-              echo "  --osm-file-url=URL  URL to OSM .pbf file. Default is"
-              echo "                       http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
-              echo "  --with-docker       Build with docker. False if ommited."
-              echo "  --help, -h          Show this message"
+              echo "  --all                 All --build-* options true. False if ommited."
+              echo "  --build-admins        Build admins DB. False if ommited."
+              echo "  --build-config        Build config file. False if ommited."
+              echo "  --build-tiles         Build routing tiles. False if ommited."
+              echo "  --build-tiles-tar     Build tiles tar. False if ommited."
+              echo "  --build-timezones     Build timezones DB. False if ommited."
+              echo "  --build-transit       Fetch and build transit tiles. False if ommited."
+              echo "  --clean-data          Cleanup files in data dir. False if ommited."
+              echo "  --config-file=FILE    Path to config file. Default is config.json"
+              echo "  --datastore-url=URL   URL of the Datastore API. Default is http://localhost:8004"
+              echo "  --data-dir=DIR        Path to Valhalla data dir. Default is /data/valhalla."
+              echo "                        Will be mounted as a volume if --with-docker."
+              echo "  --osm-file=FILE       Path to OSM .pbf file. Default is portugal-latest.osm.pbf"
+              echo "  --osm-file-url=URL    URL to OSM .pbf file. Default is"
+              echo "                          http://download.geofabrik.de/europe/portugal-latest.osm.pbf"
+              echo "  --transit-bbox=BBOX   Only get transit tiles for given bounding box. Default is"
+              echo "                          31.56,29.89,-6.18,42.23, which is Portugal."
+              echo "  --with-docker         Build with docker. False if ommited."
+              echo "  --help, -h            Show this message"
     exit ;;
   esac
 done
@@ -118,7 +122,7 @@ cmd_build_config="bash -c \"valhalla_build_config ${CONFIG_COMMON} ${CONFIG_DIRS
 cmd_build_timezones="valhalla_build_timezones ${CONFIG_FILE} "
 cmd_build_admins="valhalla_build_admins -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_build_transit="valhalla_build_transit ${CONFIG_FILE} ${DATASTORE_URL} \
-1000 transit -31.56,29.89,-6.18,42.23 valhalla-NJ9dUr7Rt 4"
+1000 transit ${TRANSIT_BBOX}"
 cmd_build_tiles="valhalla_build_tiles -c ${CONFIG_FILE} ${OSM_FILE}"
 cmd_create_tar="bash -c \"find tiles | sort -n | tar cf tiles.tar --no-recursion -T -\""
 cmd_chown_data="chown -R ${UID} /data/valhalla"
