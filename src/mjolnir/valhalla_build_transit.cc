@@ -2401,11 +2401,11 @@ int main(int argc, char** argv) {
   }
   if (argc > 6) {
     pt.erase("import_level");
-    pt.add("import_level", std::string(argv[7]));
+    pt.add("import_level", std::string(argv[6]));
   }
   if (argc > 7) {
     pt.erase("api_key");
-    pt.add("api_key", std::string(argv[6]));
+    pt.add("api_key", std::string(argv[7]));
   }
 
   // yes we want to curl
