@@ -57,6 +57,7 @@ else
     lua5.2 \
     make \
     nodejs \
+    npm \
     pkg-config \
     prime-server0.6.3-bin \
     protobuf-compiler \
