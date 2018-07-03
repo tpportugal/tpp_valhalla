@@ -69,7 +69,7 @@ else
 
     mkdir build
     cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Debug
+    cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_NODE_BINDINGS=OFF
     make -j$(nproc)
     make check
     sudo make install
