@@ -66,3 +66,7 @@ scripts/gdal-2.0.0.tar.gz
 
 # Ignore tiles
 tiles/*.tar
+
+# nodejs
+node_modules
+lib/binding/node_valhalla.node

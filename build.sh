@@ -69,7 +69,8 @@ else
     mkdir build
     cd build
     cmake .. -DCMAKE_BUILD_TYPE=Debug
-    make check -j$(nproc)
+    make -j$(nproc)
+    make check
     sudo make install
     sudo ldconfig
 fi
