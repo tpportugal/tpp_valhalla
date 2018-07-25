@@ -138,149 +138,149 @@ then
 fi
 
 # Download OSM file if it doesn't exist or was updated
-echo "============================================"
-echo "| Check OSM file and download it if needed |"
-echo "============================================"
+echo "############################################"
+echo "# Check OSM file and download it if needed #"
+echo "############################################"
 echo "wget --timestamping --backups=1 ${OSM_FILE_URL}"
 wget --timestamping --backups=1 "${OSM_FILE_URL}"
-echo "====================="
-echo "| OSM file is ready |"
-echo "====================="
+echo "#####################"
+echo "# OSM file is ready #"
+echo "#####################"
 
 if [ $WITH_DOCKER = true ]
 then
   if [ $BUILD_CONFIG = true ]
   then
-    echo "========================="
-    echo "| Building config file. |"
-    echo "========================="
+    echo "#########################"
+    echo "# Building config file. #"
+    echo "#########################"
     echo "$docker_run $volume1 $docker_image $cmd_build_config"
     eval $docker_run $volume1 $docker_image $cmd_build_config
-    echo "=============================="
-    echo "| Building config file done. |"
-    echo "=============================="
+    echo "##############################"
+    echo "# Building config file done. #"
+    echo "##############################"
   fi
   if [ $BUILD_TIMEZONES = true ]
   then
-    echo "=========================="
-    echo "| Building Timezones DB. |"
-    echo "=========================="
+    echo "##########################"
+    echo "# Building Timezones DB. #"
+    echo "##########################"
     echo "$docker_run $volume1 $docker_image $cmd_build_timezones"
     eval $docker_run $volume1 $docker_image $cmd_build_timezones
-    echo "==============================="
-    echo "| Building Timezones DB done. |"
-    echo "==============================="
+    echo "###############################"
+    echo "# Building Timezones DB done. #"
+    echo "###############################"
   fi
   if [ $BUILD_ADMINS = true ]
   then
-    echo "======================="
-    echo "| Building Admins DB. |"
-    echo "======================="
+    echo "#######################"
+    echo "# Building Admins DB. #"
+    echo "#######################"
     echo "$docker_run $volume1 $docker_image $cmd_build_admins"
     eval $docker_run $volume1 $docker_image $cmd_build_admins
-    echo "============================"
-    echo "| Building Admins DB done. |"
-    echo "============================"
+    echo "############################"
+    echo "# Building Admins DB done. #"
+    echo "############################"
   fi
   if [ $BUILD_TRANSIT = true ]
   then
-    echo "====================="
-    echo "| Building Transit. |"
-    echo "====================="
+    echo "#####################"
+    echo "# Building Transit. #"
+    echo "#####################"
     echo "$docker_run $volume1 $docker_image $cmd_build_transit"
     eval $docker_run $volume1 $docker_image $cmd_build_transit
-    echo "=========================="
-    echo "| Building Transit done. |"
-    echo "=========================="
+    echo "##########################"
+    echo "# Building Transit done. #"
+    echo "##########################"
   fi
   if [ $BUILD_TILES = true ]
   then
-    echo "==================="
-    echo "| Building Tiles. |"
-    echo "==================="
+    echo "###################"
+    echo "# Building Tiles. #"
+    echo "###################"
     echo "$docker_run $volume1 $docker_image $cmd_build_tiles"
     eval $docker_run $volume1 $docker_image $cmd_build_tiles
-    echo "========================"
-    echo "| Building Tiles done. |"
-    echo "========================"
+    echo "########################"
+    echo "# Building Tiles done. #"
+    echo "########################"
   fi
   if [ $BUILD_TILES_TAR = true ]
   then
-    echo "============================"
-    echo "| Building Tiles Tar file. |"
-    echo "============================"
+    echo "############################"
+    echo "# Building Tiles Tar file. #"
+    echo "############################"
     echo "$docker_run $volume1 $docker_image $cmd_build_tiles_tar"
     eval $docker_run $volume1 $docker_image $cmd_build_tiles_tar
-    echo "================================="
-    echo "| Building Tiles Tar file done. |"
-    echo "================================="
+    echo "#################################"
+    echo "# Building Tiles Tar file done. #"
+    echo "#################################"
   fi
   eval $docker_run $volume1 $docker_image $cmd_chown_data
 else
   if [ $BUILD_CONFIG = true ]
   then
-    echo "========================="
-    echo "| Building config file. |"
-    echo "========================="
+    echo "#########################"
+    echo "# Building config file. #"
+    echo "#########################"
     echo "$cmd_build_config"
     eval $cmd_build_config
-    echo "=============================="
-    echo "| Building config file done. |"
-    echo "=============================="
+    echo "##############################"
+    echo "# Building config file done. #"
+    echo "##############################"
   fi
   if [ $BUILD_TIMEZONES = true ]
   then
-    echo "=========================="
-    echo "| Building Timezones DB. |"
-    echo "=========================="
+    echo "##########################"
+    echo "# Building Timezones DB. #"
+    echo "##########################"
     echo "$cmd_build_timezones"
     eval $cmd_build_timezones
-    echo "==============================="
-    echo "| Building Timezones DB done. |"
-    echo "==============================="
+    echo "###############################"
+    echo "# Building Timezones DB done. #"
+    echo "###############################"
   fi
   if [ $BUILD_ADMINS = true ]
   then
-    echo "======================="
-    echo "| Building Admins DB. |"
-    echo "======================="
+    echo "#######################"
+    echo "# Building Admins DB. #"
+    echo "#######################"
     echo "$cmd_build_admins"
     eval $cmd_build_admins
-    echo "============================"
-    echo "| Building Admins DB done. |"
-    echo "============================"
+    echo "############################"
+    echo "# Building Admins DB done. #"
+    echo "############################"
   fi
   if [ $BUILD_TRANSIT = true ]
   then
-    echo "====================="
-    echo "| Building Transit. |"
-    echo "====================="
+    echo "#####################"
+    echo "# Building Transit. #"
+    echo "#####################"
     echo "$cmd_build_transit"
     eval $cmd_build_transit
-    echo "=========================="
-    echo "| Building Transit done. |"
-    echo "=========================="
+    echo "##########################"
+    echo "# Building Transit done. #"
+    echo "##########################"
   fi
   if [ $BUILD_TILES = true ]
   then
-    echo "==================="
-    echo "| Building Tiles. |"
-    echo "==================="
+    echo "###################"
+    echo "# Building Tiles. #"
+    echo "###################"
     echo "$cmd_build_tiles"
     eval $cmd_build_tiles
-    echo "========================"
-    echo "| Building Tiles done. |"
-    echo "========================"
+    echo "########################"
+    echo "# Building Tiles done. #"
+    echo "########################"
   fi
   if [ $BUILD_TILES_TAR = true ]
   then
-    echo "============================"
-    echo "| Building Tiles Tar file. |"
-    echo "============================"
+    echo "############################"
+    echo "# Building Tiles Tar file. #"
+    echo "############################"
     echo "$cmd_build_tiles_tar"
     eval $cmd_build_tiles_tar
-    echo "================================="
-    echo "| Building Tiles Tar file done. |"
-    echo "================================="
+    echo "#################################"
+    echo "# Building Tiles Tar file done. #"
+    echo "#################################"
   fi
 fi

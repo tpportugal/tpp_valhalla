@@ -56,8 +56,6 @@ else
     libtool \
     lua5.2 \
     make \
-    nodejs \
-    npm \
     pkg-config \
     prime-server0.6.3-bin \
     protobuf-compiler \
@@ -70,7 +68,7 @@ else
 
     mkdir build
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_NODE_BINDINGS=OFF
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_NODE_BINDINGS=OFF
     make -j$(nproc)
     make check
     sudo make install
