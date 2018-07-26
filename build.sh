@@ -22,6 +22,7 @@ done
 if [ $BUILD_CLEAN = true ]
 then
     rm -rf build
+    rm -rf node_modules
 fi
 
 git submodule update --init --recursive
@@ -30,9 +31,12 @@ if [ $WITH_DOCKER = true ]
 then
     docker build -t tpportugal/tpp_valhalla:latest .
 else
-    sudo apt-get install -y software-properties-common
+    sudo apt-get install -y software-properties-common curl gnupg
     if ! grep -q "^deb .*$PPA" /etc/apt/sources.list /etc/apt/sources.list.d/*; then
       sudo add-apt-repository -y ppa:"$PPA"
+    fi
+    if ! grep -q "^deb .*node_10.x" /etc/apt/sources.list /etc/apt/sources.list.d/*; then
+      sudo curl -sL https://deb.nodesource.com/setup_10.x | bash
     fi
     sudo apt-get update
     sudo apt-get upgrade -y --no-install-recommends
@@ -56,6 +60,7 @@ else
     libtool \
     lua5.2 \
     make \
+    nodejs \
     pkg-config \
     prime-server0.6.3-bin \
     protobuf-compiler \
@@ -65,10 +70,10 @@ else
     zlib1g-dev \
     unzip \
     wget
-
+    npm install --ignore-scripts
     mkdir build
     cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_NODE_BINDINGS=OFF
+    cmake .. -DCMAKE_BUILD_TYPE=Release
     make -j$(nproc)
     make check
     sudo make install

@@ -4,7 +4,7 @@ LABEL maintainer="TPP <api@tpp.pt>"
 WORKDIR /data/valhalla
 RUN apt-get -qq update && \
     apt-get -q -y upgrade && \
-    apt-get install -y sudo curl wget locales && \
+    apt-get install -y sudo curl gnupg wget locales && \
     rm -rf /var/lib/apt/lists/*
 # Ensure that we always use UTF-8 and with European Portuguese locale
 RUN locale-gen pt_PT.UTF-8
@@ -14,7 +14,8 @@ ENV LANGUAGE=pt_PT.UTF-8
 RUN apt-get -qq update && \
     apt-get -q -y upgrade --no-install-recommends && \
     apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:valhalla-core/valhalla
+    add-apt-repository -y ppa:valhalla-core/valhalla && \
+    curl -sL https://deb.nodesource.com/setup_10.x | bash
 RUN apt-get -qq update && \
     apt-get install -y --no-install-recommends \
     cmake \
@@ -48,7 +49,6 @@ RUN apt-get -qq update && \
     lua5.2 \
     make \
     nodejs \
-    npm \
     pkg-config \
     prime-server0.6.3-bin \
     protobuf-compiler \
@@ -60,6 +60,7 @@ RUN apt-get -qq update && \
 # Mount data A.K.A "ADD" after packages installation for docker caching
 COPY . /data/valhalla/libvalhalla/
 WORKDIR /data/valhalla/libvalhalla
+RUN npm install --ignore-scripts
 RUN mkdir build && \
     cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release && \
@@ -87,6 +88,7 @@ RUN apt-get -y purge  \
     libsqlite3-dev \
     libtool \
     make \
+    nodejs \
     pkg-config \
     protobuf-compiler \
     vim-common \
