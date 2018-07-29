@@ -97,16 +97,15 @@ CONFIG_COMMON="--loki-service-defaults-minimum-reachability 50 \
 --thor-logging-long-request 1100.0"
 
 # Change data dir location in config depending on type of build
-if [ $WITH_DOCKER = true ]
-then
-CONFIG_DIRS="--additional-data-elevation /data/valhalla/elevation/ \
+if [ $WITH_DOCKER = true ]; then
+  CONFIG_DIRS="--additional-data-elevation /data/valhalla/elevation/ \
 --mjolnir-admin /data/valhalla/admin.sqlite \
 --mjolnir-timezone /data/valhalla/tz_world.sqlite \
 --mjolnir-tile-dir /data/valhalla/tiles \
 --mjolnir-tile-extract /data/valhalla/tiles.tar \
 --mjolnir-transit-dir /data/valhalla/transit"
 else
-CONFIG_DIRS="--additional-data-elevation ${DATA_DIR}/elevation/ \
+  CONFIG_DIRS="--additional-data-elevation ${DATA_DIR}/elevation/ \
 --mjolnir-admin ${DATA_DIR}/admin.sqlite \
 --mjolnir-timezone ${DATA_DIR}/tz_world.sqlite \
 --mjolnir-tile-dir ${DATA_DIR}/tiles \
@@ -132,8 +131,7 @@ cd "${DATA_DIR}" || { echo "${DATA_DIR} not found. Please create it before" \
                          "running this script again" && exit 1; }
 
 #Cleanup data dir before anything else runs, if requested
-if [[ $CLEAN_DATA = true && "${PWD}" = "${DATA_DIR}" ]]
-then
+if [[ $CLEAN_DATA = true && "${PWD}" = "${DATA_DIR}" ]]; then
   rm -rf *
 fi
 
@@ -147,10 +145,8 @@ echo "#####################"
 echo "# OSM file is ready #"
 echo "#####################"
 
-if [ $WITH_DOCKER = true ]
-then
-  if [ $BUILD_CONFIG = true ]
-  then
+if [ $WITH_DOCKER = true ]; then
+  if [ $BUILD_CONFIG = true ]; then
     echo "#########################"
     echo "# Building config file. #"
     echo "#########################"
@@ -160,8 +156,7 @@ then
     echo "# Building config file done. #"
     echo "##############################"
   fi
-  if [ $BUILD_TIMEZONES = true ]
-  then
+  if [ $BUILD_TIMEZONES = true ]; then
     echo "##########################"
     echo "# Building Timezones DB. #"
     echo "##########################"
@@ -171,8 +166,7 @@ then
     echo "# Building Timezones DB done. #"
     echo "###############################"
   fi
-  if [ $BUILD_ADMINS = true ]
-  then
+  if [ $BUILD_ADMINS = true ]; then
     echo "#######################"
     echo "# Building Admins DB. #"
     echo "#######################"
@@ -182,8 +176,7 @@ then
     echo "# Building Admins DB done. #"
     echo "############################"
   fi
-  if [ $BUILD_TRANSIT = true ]
-  then
+  if [ $BUILD_TRANSIT = true ]; then
     echo "#####################"
     echo "# Building Transit. #"
     echo "#####################"
@@ -193,8 +186,7 @@ then
     echo "# Building Transit done. #"
     echo "##########################"
   fi
-  if [ $BUILD_TILES = true ]
-  then
+  if [ $BUILD_TILES = true ]; then
     echo "###################"
     echo "# Building Tiles. #"
     echo "###################"
@@ -204,8 +196,7 @@ then
     echo "# Building Tiles done. #"
     echo "########################"
   fi
-  if [ $BUILD_TILES_TAR = true ]
-  then
+  if [ $BUILD_TILES_TAR = true ]; then
     echo "############################"
     echo "# Building Tiles Tar file. #"
     echo "############################"
@@ -217,8 +208,7 @@ then
   fi
   eval $docker_run $volume1 $docker_image $cmd_chown_data
 else
-  if [ $BUILD_CONFIG = true ]
-  then
+  if [ $BUILD_CONFIG = true ]; then
     echo "#########################"
     echo "# Building config file. #"
     echo "#########################"
@@ -228,8 +218,7 @@ else
     echo "# Building config file done. #"
     echo "##############################"
   fi
-  if [ $BUILD_TIMEZONES = true ]
-  then
+  if [ $BUILD_TIMEZONES = true ]; then
     echo "##########################"
     echo "# Building Timezones DB. #"
     echo "##########################"
@@ -239,8 +228,7 @@ else
     echo "# Building Timezones DB done. #"
     echo "###############################"
   fi
-  if [ $BUILD_ADMINS = true ]
-  then
+  if [ $BUILD_ADMINS = true ]; then
     echo "#######################"
     echo "# Building Admins DB. #"
     echo "#######################"
@@ -250,8 +238,7 @@ else
     echo "# Building Admins DB done. #"
     echo "############################"
   fi
-  if [ $BUILD_TRANSIT = true ]
-  then
+  if [ $BUILD_TRANSIT = true ]; then
     echo "#####################"
     echo "# Building Transit. #"
     echo "#####################"
@@ -261,8 +248,7 @@ else
     echo "# Building Transit done. #"
     echo "##########################"
   fi
-  if [ $BUILD_TILES = true ]
-  then
+  if [ $BUILD_TILES = true ]; then
     echo "###################"
     echo "# Building Tiles. #"
     echo "###################"
@@ -272,8 +258,7 @@ else
     echo "# Building Tiles done. #"
     echo "########################"
   fi
-  if [ $BUILD_TILES_TAR = true ]
-  then
+  if [ $BUILD_TILES_TAR = true ]; then
     echo "############################"
     echo "# Building Tiles Tar file. #"
     echo "############################"

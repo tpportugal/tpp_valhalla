@@ -28,8 +28,7 @@ volume1="-v ${DATA_DIR}:/data/valhalla"
 docker_image="tpportugal/tpp_valhalla:latest"
 cmd_start="bash -c \"valhalla_service ${CONFIG_FILE} 1 >> valhalla_service.log 2>&1\""
 
-if [ $WITH_DOCKER = true ]
-then
+if [ $WITH_DOCKER = true ]; then
   eval $run $volume1 $docker_image $cmd_start
 else
   cd "${DATA_DIR}"

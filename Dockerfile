@@ -23,7 +23,7 @@ RUN apt-get -qq update && \
     gcc \
     jq \
     lcov \
-    libboost-all-dev \
+    libboost1.58-all-dev \
     libboost-date-time1.58.0 \
     libboost-filesystem1.58.0 \
     libboost-program-options1.58.0 \
@@ -53,21 +53,21 @@ RUN apt-get -qq update && \
     prime-server0.6.3-bin \
     protobuf-compiler \
     vim-common \
-    python-all-dev \
     spatialite-bin \
     zlib1g-dev \
     unzip
 # Mount data A.K.A "ADD" after packages installation for docker caching
 COPY . /data/valhalla/libvalhalla/
 WORKDIR /data/valhalla/libvalhalla
-RUN npm install --ignore-scripts
-RUN mkdir build && \
-    cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
+RUN if [ ! -d "build" ]; then \
+      mkdir build \
+    fi
+RUN cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=Off -DENABLE_NODE_BINDINGS=Off && \
     make -j$(nproc) && \
-    make check && \
-    make install && \
-    rm -rf /data/valhalla/libvalhalla/build
+    make -j$(nproc) tests && \
+    make -j$(nproc) check && \
+    make install
 WORKDIR /data/valhalla
 RUN rm -rf /data/valhalla/libvalhalla && \
     ldconfig
@@ -76,7 +76,7 @@ RUN apt-get -y purge  \
     g++ \
     gcc \
     lcov \
-    libboost-all-dev \
+    libboost1.58-all-dev \
     libcurl4-openssl-dev \
     libgeos-dev \
     libgeos++-dev \
@@ -92,7 +92,6 @@ RUN apt-get -y purge  \
     pkg-config \
     protobuf-compiler \
     vim-common \
-    python-all-dev \
     zlib1g-dev \
     && apt-get autoremove -y && apt-get clean
 EXPOSE 8002

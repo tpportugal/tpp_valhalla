@@ -12,8 +12,7 @@ for arg in "$@"; do
   esac
 done
 
-if [ $WITH_DOCKER = true ]
-then
+if [ $WITH_DOCKER = true ]; then
   docker stop $(docker ps -q --filter ancestor=tpportugal/tpp_valhalla)
 else
     pkill -9 valhalla_service
