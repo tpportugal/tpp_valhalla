@@ -59,10 +59,8 @@ RUN apt-get -qq update && \
 # Mount data A.K.A "ADD" after packages installation for docker caching
 COPY . /data/valhalla/libvalhalla/
 WORKDIR /data/valhalla/libvalhalla
-RUN if [ ! -d "build" ]; then \
-      mkdir build \
-    fi
-RUN cd build && \
+RUN mkdir build && \
+    cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=Off -DENABLE_NODE_BINDINGS=Off && \
     make -j$(nproc) && \
     make -j$(nproc) tests && \
