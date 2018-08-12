@@ -76,7 +76,6 @@ if(NOT TARGET protobuf::libprotobuf)
 endif()
 
 find_package(ZLIB REQUIRED)
-find_package(LZ4 REQUIRED)
 find_package(Threads REQUIRED)
 
 add_library(libprime_server INTERFACE IMPORTED)
@@ -211,6 +210,7 @@ target_include_directories(valhalla
     ${VALHALLA_BINARY_DIR}
     ${VALHALLA_BINARY_DIR}/valhalla  # TODO: this path must be removed and changed to #include <valhalla/...> in headers
     ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
+    $<$<BOOL:${MSVC}>:${VALHALLA_SOURCE_DIR}/third_party/dirent/include>
   PRIVATE
     ${libvalhalla_include_directories})
 

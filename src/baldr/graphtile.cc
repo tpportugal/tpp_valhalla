@@ -1,17 +1,14 @@
 #include "baldr/graphtile.h"
+#include "baldr/compression_utils.h"
 #include "baldr/datetime.h"
-#include "baldr/filesystem_utils.h"
 #include "baldr/tilehierarchy.h"
+#include "filesystem.h"
 #include "midgard/aabb2.h"
 #include "midgard/logging.h"
 #include "midgard/pointll.h"
 #include "midgard/tiles.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 #include <cmath>
 #include <ctime>
 #include <fstream>
@@ -34,6 +31,7 @@ protected:
 };
 const std::locale dir_locale(std::locale("C"), new dir_facet());
 const AABB2<PointLL> world_box(PointLL(-180, -90), PointLL(180, 90));
+constexpr float COMPRESSION_HINT = 3.5f;
 } // namespace
 
 namespace valhalla {
@@ -61,7 +59,8 @@ GraphTile::GraphTile(const std::string& tile_dir, const GraphId& graphid) : head
   }
 
   // Open to the end of the file so we can immediately get size;
-  std::string file_location = tile_dir + filesystem::path_separator + FileSuffix(graphid.Tile_Base());
+  std::string file_location =
+      tile_dir + filesystem::path::preferred_separator + FileSuffix(graphid.Tile_Base());
   std::ifstream file(file_location, std::ios::in | std::ios::binary | std::ios::ate);
   if (file.is_open()) {
     // Read binary file into memory. TODO - protect against failure to
@@ -69,29 +68,55 @@ GraphTile::GraphTile(const std::string& tile_dir, const GraphId& graphid) : head
     size_t filesize = file.tellg();
     graphtile_.reset(new std::vector<char>(filesize));
     file.seekg(0, std::ios::beg);
-    file.read(&(*graphtile_)[0], filesize);
+    file.read(graphtile_->data(), filesize);
     file.close();
 
     // Set pointers to internal data structures
-    Initialize(graphid, &(*graphtile_)[0], graphtile_->size());
-  } else {
-    std::ifstream file(file_location + ".gz", std::ios::in | std::ios::binary | std::ios::ate);
+    Initialize(graphid, graphtile_->data(), graphtile_->size());
+  } // try to load a gzipped tile
+  else {
+    std::ifstream file(file_location + ".gz", std::ios::in | std::ios::binary);
     if (file.is_open()) {
-      // Pre-allocate assuming 3.25:1 compression ratio (based on scanning some large NA tiles)
-      size_t filesize = file.tellg();
-      file.seekg(0, std::ios::beg);
-      graphtile_.reset(new std::vector<char>());
-      graphtile_->reserve(filesize * 3 +
-                          filesize / 4); // TODO: read the gzip footer and get the real size?
+      // read the compressed file into memory
+      std::vector<char> compressed(std::istreambuf_iterator<char>(file),
+                                   (std::istreambuf_iterator<char>()));
+
+      // for setting where to read compressed data from
+      auto src_func = [&compressed](z_stream& s) -> void {
+        s.next_in = static_cast<Byte*>(static_cast<void*>(compressed.data()));
+        s.avail_in = static_cast<unsigned int>(compressed.size());
+      };
+
+      // for setting where to write the uncompressed data to
+      graphtile_.reset(new std::vector<char>(0, 0));
+      auto dst_func = [this, &compressed](z_stream& s) -> int {
+        // if the whole buffer wasn't used we are done
+        auto size = graphtile_->size();
+        if (s.total_out < size)
+          graphtile_->resize(s.total_out);
+        // we need more space
+        else {
+          // assume we need 3.5x the space
+          graphtile_->resize(size + (compressed.size() * COMPRESSION_HINT));
+          // set the pointer to the next spot
+          s.next_out = static_cast<Byte*>(static_cast<void*>(graphtile_->data() + size));
+          s.avail_out = compressed.size() * COMPRESSION_HINT;
+        }
+        return Z_NO_FLUSH;
+      };
 
       // Decompress tile into memory
-      boost::iostreams::filtering_ostream os;
-      os.push(boost::iostreams::gzip_decompressor());
-      os.push(boost::iostreams::back_inserter(*graphtile_));
-      boost::iostreams::copy(file, os);
+      if (!baldr::inflate(src_func, dst_func)) {
+        LOG_WARN("Failed to gunzip: " + file_location + ".gz");
+        graphtile_.reset();
+        return;
+      }
+      std::ofstream foo(file_location + ".foobar", std::ios::binary | std::ios::trunc);
+      foo.write(graphtile_->data(), graphtile_->size());
+      foo.close();
 
       // Set pointers to internal data structures
-      Initialize(graphid, &(*graphtile_)[0], graphtile_->size());
+      Initialize(graphid, graphtile_->data(), graphtile_->size());
     } else {
       LOG_DEBUG("Tile " + file_location + " was not found");
     }
@@ -111,14 +136,15 @@ GraphTile::GraphTile(const std::string& tile_url, const GraphId& graphid, curler
   }
 
   // Get the response returned from curl
-  std::string uri = tile_url + filesystem::path_separator + FileSuffix(graphid.Tile_Base());
+  std::string uri =
+      tile_url + filesystem::path::preferred_separator + FileSuffix(graphid.Tile_Base());
   long http_code;
   auto tile_data = curler(uri, http_code);
 
   // If its good try to use it
   if (http_code == 200) {
     graphtile_ = std::make_shared<std::vector<char>>(std::move(tile_data));
-    Initialize(graphid, &(*graphtile_)[0], graphtile_->size());
+    Initialize(graphid, graphtile_->data(), graphtile_->size());
     // TODO: optionally write the tile to disk?
   }
 }
@@ -327,10 +353,19 @@ std::string GraphTile::FileSuffix(const GraphId& graphid) {
 
 // Get the tile Id given the full path to the file.
 GraphId GraphTile::GetTileId(const std::string& fname) {
-  const std::unordered_set<std::string::value_type>
-      allowed{filesystem::path_separator, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+  const std::unordered_set<std::string::value_type> allowed{filesystem::path::preferred_separator,
+                                                            '0',
+                                                            '1',
+                                                            '2',
+                                                            '3',
+                                                            '4',
+                                                            '5',
+                                                            '6',
+                                                            '7',
+                                                            '8',
+                                                            '9'};
   // we require slashes
-  auto pos = fname.find_last_of(filesystem::path_separator);
+  auto pos = fname.find_last_of(filesystem::path::preferred_separator);
   if (pos == fname.npos) {
     throw std::runtime_error("Invalid tile path: " + fname);
   }
@@ -357,7 +392,7 @@ GraphId GraphTile::GetTileId(const std::string& fname) {
       throw std::runtime_error("Invalid tile path: " + fname);
     }
     // if its a slash thats another digit
-    if (c == filesystem::path_separator) {
+    if (c == filesystem::path::preferred_separator) {
       // this is not 3 or 1 digits so its wrong
       auto dist = last - pos;
       if (dist != 4 && dist != 2) {
