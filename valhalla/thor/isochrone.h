@@ -91,9 +91,24 @@ public:
                     const sif::TravelMode mode);
 
 protected:
+  bool has_date_time_;
+  int start_tz_index_;   // Timezone at the start of the isochrone
   float shape_interval_; // Interval along shape to mark time
   sif::TravelMode mode_; // Current travel mode
   uint32_t access_mode_; // Access mode used by the costing method
+
+  // For multimodal isochrones
+  bool date_set_;
+  bool date_before_tile_;
+  uint32_t date_;
+  uint32_t dow_;
+  uint32_t day_;
+  uint32_t start_time_;
+  uint32_t max_seconds_;
+  uint32_t max_transfer_distance_;
+  std::string origin_date_time_;
+  std::unordered_map<std::string, uint32_t> operators_;
+  std::unordered_set<uint32_t> processed_tiles_;
 
   // Current costing mode
   std::shared_ptr<sif::DynamicCost> costing_;
@@ -147,22 +162,71 @@ protected:
 
   /**
    * Expand from the node along the forward search path.
+   * @param graphreader  Graph reader.
+   * @param node Graph Id of the node to expand.
+   * @param pred Edge label of the predecessor edge leading to the node.
+   * @param pred_idx Index in the edge label list of the predecessor edge.
+   * @param from_transition Boolean indicating if this expansion is from a transition edge.
+   * @param localtime Current local time.  Seconds since epoch.
+   * @param seconds_of_week For time dependent isochrones this allows lookup of predicted traffic.
    */
   void ExpandForward(baldr::GraphReader& graphreader,
                      const baldr::GraphId& node,
                      const sif::EdgeLabel& pred,
                      const uint32_t pred_idx,
-                     const bool from_transition);
+                     const bool from_transition,
+                     uint64_t localtime,
+                     int32_t seconds_of_week);
 
   /**
    * Expand from the node along the reverse search path.
+   * @param graphreader  Graph reader.
+   * @param node Graph Id of the node to expand.
+   * @param pred Edge label of the predecessor edge leading to the node.
+   * @param pred_idx Index in the edge label list of the predecessor edge.
+   * @param from_transition Boolean indicating if this expansion is from a transition edge.
+   * @param localtime Current local time.  Seconds since epoch.
+   * @param seconds_of_week For time dependent isochrones this allows lookup of predicted traffic.
    */
   void ExpandReverse(baldr::GraphReader& graphreader,
                      const baldr::GraphId& node,
                      const sif::BDEdgeLabel& pred,
                      const uint32_t pred_idx,
                      const baldr::DirectedEdge* opp_pred_edge,
-                     const bool from_transition);
+                     const bool from_transition,
+                     uint64_t localtime,
+                     int32_t seconds_of_week);
+
+  /**
+   * Expand from the node using multimodal algorithm.
+   * @param graphreader  Graph reader.
+   * @param node Graph Id of the node to expand.
+   * @param pred Edge label of the predecessor edge leading to the node.
+   * @param pred_idx Index in the edge label list of the predecessor edge.
+   * @param from_transition Boolean indicating if this expansion is from a transition edge.
+   * @param pc Pedestrian costing.
+   * @param tc Transit costing.
+   * @param mode_costing Array of all costing models.
+   * @return Returns true if the isochrone is done.
+   */
+  bool ExpandForwardMM(baldr::GraphReader& graphreader,
+                       const baldr::GraphId& node,
+                       const sif::MMEdgeLabel& pred,
+                       const uint32_t pred_idx,
+                       const bool from_transition,
+                       const std::shared_ptr<sif::DynamicCost>& pc,
+                       const std::shared_ptr<sif::DynamicCost>& tc,
+                       const std::shared_ptr<sif::DynamicCost>* mode_costing);
+
+  /**
+   * Expand from the node for a multi-modal path.
+   */
+  void ExpandMM(baldr::GraphReader& graphreader,
+                const baldr::GraphId& node,
+                const sif::MMEdgeLabel& pred,
+                const sif::DynamicCost* costing,
+                const sif::DynamicCost* tc,
+                const std::shared_ptr<sif::DynamicCost>* mode_costing);
 
   /**
    * Updates the isotile using the edge information from the predecessor edge
@@ -209,6 +273,17 @@ protected:
       baldr::GraphReader& graphreader,
       google::protobuf::RepeatedPtrField<valhalla::odin::Location>& dest_locations,
       const std::shared_ptr<sif::DynamicCost>& costing);
+
+  /**
+   * Convenience method to get the timezone index at a node.
+   * @param graphreader Graph reader.
+   * @param node GraphId of the node to get the timezone index.
+   * @return Returns the timezone index. A value of 0 indicates an invalid timezone.
+   */
+  int GetTimezone(baldr::GraphReader& graphreader, const baldr::GraphId& node) {
+    const baldr::GraphTile* tile = graphreader.GetGraphTile(node);
+    return (tile == nullptr) ? 0 : tile->node(node)->timezone();
+  }
 };
 
 } // namespace thor

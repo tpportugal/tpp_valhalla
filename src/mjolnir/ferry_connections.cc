@@ -3,6 +3,7 @@
 #include <queue>
 #include <unordered_map>
 
+#include "baldr/graphconstants.h"
 #include "midgard/util.h"
 
 namespace valhalla {
@@ -48,7 +49,7 @@ uint32_t ShortestPath(const uint32_t start_node_idx,
     std::list<PointLL> shape;
     for (size_t i = 0; i < count; ++i) {
       auto node = (*way_nodes[idx++]).node;
-      shape.emplace_back(node.lng, node.lat);
+      shape.emplace_back(node.lng_, node.lat_);
     }
     return shape;
   };
@@ -116,8 +117,15 @@ uint32_t ShortestPath(const uint32_t start_node_idx,
         continue;
       }
 
-      // Skip non-driveable edges (based on inbound flag)
+      // Skip destination only and uses other than road / other (service?)
       const OSMWay w = *ways[edge.wayindex_];
+      if (w.destination_only() ||
+          (w.use() != baldr::Use::kOther &&
+           static_cast<int>(w.use()) > static_cast<int>(baldr::Use::kTurnChannel))) {
+        continue;
+      }
+
+      // Skip non-driveable edges (based on inbound flag)
       bool forward = (edge.sourcenode_ == node_index);
       if (forward) {
         if ((inbound && !edge.attributes.driveablereverse) ||
@@ -209,7 +217,7 @@ bool ShortFerry(const uint32_t node_index,
     std::list<PointLL> shape;
     for (size_t i = 0; i < count; ++i) {
       auto node = (*way_nodes[idx++]).node;
-      shape.emplace_back(node.lng, node.lat);
+      shape.emplace_back(node.lng_, node.lat_);
     }
     return shape;
   };
@@ -223,7 +231,7 @@ bool ShortFerry(const uint32_t node_index,
           (edge.first.sourcenode_ == node_index) ? edge.first.targetnode_ : edge.first.sourcenode_;
       auto end_node_itr = nodes[endnode];
       auto bundle2 = collect_node_edges(end_node_itr, nodes, edges);
-      if (bundle2.node.attributes_.non_ferry_edge) {
+      if (bundle2.node.non_ferry_edge_) {
         auto shape = EdgeShape(edge.first.llindex_, edge.first.attributes.llcount);
         if (midgard::length(shape) < 2000.0f) {
           const OSMWay w = *ways[edge.first.wayindex_];
@@ -267,7 +275,7 @@ void ReclassifyFerryConnections(const std::string& ways_file,
   sequence<Node>::iterator node_itr = nodes.begin();
   while (node_itr != nodes.end()) {
     auto bundle = collect_node_edges(node_itr, nodes, edges);
-    if (bundle.node.attributes_.ferry_edge && bundle.node.attributes_.non_ferry_edge &&
+    if (bundle.node.ferry_edge_ && bundle.node.non_ferry_edge_ &&
         GetBestNonFerryClass(bundle.node_edges) > rc &&
         !ShortFerry(node_itr.position(), bundle, edges, nodes, ways, way_nodes)) {
       // Form shortest path from node along each edge connected to the ferry,

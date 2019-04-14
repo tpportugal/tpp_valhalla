@@ -1,7 +1,6 @@
 #include <boost/make_shared.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
 #include <functional>
@@ -12,17 +11,17 @@
 #include <sstream>
 #include <string>
 
-#include "src/worker.cc"
-#include "valhalla/exception.h"
-#include "valhalla/tyr/actor.h"
-#include "valhalla/midgard/logging.h"
-#include "valhalla/midgard/util.h"
+#include "baldr/rapidjson_utils.h"
+#include "midgard/logging.h"
+#include "midgard/util.h"
+#include "tyr/actor.h"
+#include "worker.h"
 
 boost::property_tree::ptree json_to_pt(const char* json) {
   std::stringstream ss;
   ss << json;
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(ss, pt);
+  rapidjson::read_json(ss, pt);
   return pt;
 }
 
@@ -46,7 +45,7 @@ public:
     try {
       response = func(actor, request);
     } catch (const valhalla::valhalla_exception_t& e) {
-      auto http_code = ERROR_TO_STATUS.find(e.code)->second;
+      actor.cleanup();
       rapidjson::StringBuffer err_message;
       rapidjson::Writer<rapidjson::StringBuffer> writer(err_message);
 
@@ -54,17 +53,25 @@ public:
       writer.Key("error_code");
       writer.Uint(e.code);
       writer.Key("http_code");
-      writer.Uint(http_code);
+      writer.Uint(e.http_code);
       writer.Key("message");
       writer.String(e.message);
       writer.EndObject();
       throw std::runtime_error(err_message.GetString());
-    } catch (const std::exception& e) { throw std::runtime_error(e.what()); }
+    } catch (const std::exception& e) {
+      actor.cleanup();
+      throw std::runtime_error(e.what());
+    }
   }
 
   void OnOK() {
     Napi::HandleScope scope(Env());
     Callback().Call({Env().Undefined(), Napi::String::New(Env(), response)});
+  }
+
+  void OnError(const Napi::Error& e) {
+    Napi::Env env = Env();
+    Callback().MakeCallback(Receiver().Value(), {e.Value(), env.Undefined()});
   }
 
   valhalla::tyr::actor_t actor;

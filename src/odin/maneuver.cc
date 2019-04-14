@@ -17,21 +17,84 @@
 using namespace valhalla::odin;
 using namespace valhalla::baldr;
 
+namespace {
+const std::unordered_map<int, std::string>
+    relative_direction_string{{static_cast<int>(Maneuver::RelativeDirection::kNone),
+                               "Maneuver::RelativeDirection::kNone"},
+                              {static_cast<int>(Maneuver::RelativeDirection::kKeepStraight),
+                               "Maneuver::RelativeDirection::kKeepStraight"},
+                              {static_cast<int>(Maneuver::RelativeDirection::kKeepRight),
+                               "Maneuver::RelativeDirection::kKeepRight"},
+                              {static_cast<int>(Maneuver::RelativeDirection::kRight),
+                               "Maneuver::RelativeDirection::kRight"},
+                              {static_cast<int>(Maneuver::RelativeDirection::KReverse),
+                               "Maneuver::RelativeDirection::KReverse"},
+                              {static_cast<int>(Maneuver::RelativeDirection::kLeft),
+                               "Maneuver::RelativeDirection::kLeft"},
+                              {static_cast<int>(Maneuver::RelativeDirection::kKeepLeft),
+                               "Maneuver::RelativeDirection::kKeepLeft"}};
+
+const std::string& TripDirections_Maneuver_Type_Name(int v) {
+  static const std::unordered_map<int, std::string> values{
+      {0, "kNone"},
+      {1, "kStart"},
+      {2, "kStartRight"},
+      {3, "kStartLeft"},
+      {4, "kDestination"},
+      {5, "kDestinationRight"},
+      {6, "kDestinationLeft"},
+      {7, "kBecomes"},
+      {8, "kContinue"},
+      {9, "kSlightRight"},
+      {10, "kRight"},
+      {11, "kSharpRight"},
+      {12, "kUturnRight"},
+      {13, "kUturnLeft"},
+      {14, "kSharpLeft"},
+      {15, "kLeft"},
+      {16, "kSlightLeft"},
+      {17, "kRampStraight"},
+      {18, "kRampRight"},
+      {19, "kRampLeft"},
+      {20, "kExitRight"},
+      {21, "kExitLeft"},
+      {22, "kStayStraight"},
+      {23, "kStayRight"},
+      {24, "kStayLeft"},
+      {25, "kMerge"},
+      {26, "kRoundaboutEnter"},
+      {27, "kRoundaboutExit"},
+      {28, "kFerryEnter"},
+      {29, "kFerryExit"},
+      {30, "kTransit"},
+      {31, "kTransitTransfer"},
+      {32, "kTransitRemainOn"},
+      {33, "kTransitConnectionStart"},
+      {34, "kTransitConnectionTransfer"},
+      {35, "kTransitConnectionDestination"},
+      {36, "kPostTransitConnectionDestination"},
+  };
+  auto f = values.find(v);
+  if (f == values.cend())
+    throw std::runtime_error("Missing value in protobuf enum to string");
+  return f->second;
+}
+
+const std::string& TripDirections_Maneuver_CardinalDirection_Name(int v) {
+  static const std::unordered_map<int, std::string> values{
+      {0, "kNorth"}, {1, "kNorthEast"}, {2, "kEast"}, {3, "kSouthEast"},
+      {4, "kSouth"}, {5, "kSouthWest"}, {6, "kWest"}, {7, "kNorthWest"},
+  };
+  auto f = values.find(v);
+  if (f == values.cend())
+    throw std::runtime_error("Missing value in protobuf enum to string");
+  return f->second;
+}
+
+} // namespace
+
 namespace valhalla {
 namespace odin {
-
-const std::unordered_map<int, std::string> Maneuver::relative_direction_string_ =
-    {{static_cast<int>(Maneuver::RelativeDirection::kNone), "Maneuver::RelativeDirection::kNone"},
-     {static_cast<int>(Maneuver::RelativeDirection::kKeepStraight),
-      "Maneuver::RelativeDirection::kKeepStraight"},
-     {static_cast<int>(Maneuver::RelativeDirection::kKeepRight),
-      "Maneuver::RelativeDirection::kKeepRight"},
-     {static_cast<int>(Maneuver::RelativeDirection::kRight), "Maneuver::RelativeDirection::kRight"},
-     {static_cast<int>(Maneuver::RelativeDirection::KReverse),
-      "Maneuver::RelativeDirection::KReverse"},
-     {static_cast<int>(Maneuver::RelativeDirection::kLeft), "Maneuver::RelativeDirection::kLeft"},
-     {static_cast<int>(Maneuver::RelativeDirection::kKeepLeft),
-      "Maneuver::RelativeDirection::kKeepLeft"}};
 
 Maneuver::Maneuver()
     : type_(TripDirections_Maneuver_Type_kNone), length_(0.0f), time_(0), basic_time_(0),
@@ -47,10 +110,11 @@ Maneuver::Maneuver()
       transit_connection_(false), rail_(false), bus_(false), fork_(false),
       begin_intersecting_edge_name_consistency_(false), intersecting_forward_edge_(false),
       tee_(false), unnamed_walkway_(false), unnamed_cycleway_(false),
-      unnamed_mountain_bike_trail_(false), verbal_multi_cue_(false) {
+      unnamed_mountain_bike_trail_(false), verbal_multi_cue_(false), to_stay_on_(false) {
   street_names_ = midgard::make_unique<StreetNames>();
   begin_street_names_ = midgard::make_unique<StreetNames>();
   cross_street_names_ = midgard::make_unique<StreetNames>();
+  roundabout_exit_street_names_ = midgard::make_unique<StreetNames>();
 }
 
 const TripDirections_Maneuver_Type& Maneuver::type() const {
@@ -65,7 +129,7 @@ const StreetNames& Maneuver::street_names() const {
   return *street_names_;
 }
 
-void Maneuver::set_street_names(const std::vector<std::string>& names) {
+void Maneuver::set_street_names(const std::vector<std::pair<std::string, bool>>& names) {
   street_names_ = midgard::make_unique<StreetNamesUs>(names);
 }
 
@@ -75,6 +139,10 @@ void Maneuver::set_street_names(std::unique_ptr<StreetNames>&& street_names) {
 
 bool Maneuver::HasStreetNames() const {
   return (!street_names_->empty());
+}
+
+void Maneuver::ClearStreetNames() {
+  street_names_->clear();
 }
 
 bool Maneuver::HasSameNames(const Maneuver* other_maneuver,
@@ -121,7 +189,7 @@ const StreetNames& Maneuver::begin_street_names() const {
   return *begin_street_names_;
 }
 
-void Maneuver::set_begin_street_names(const std::vector<std::string>& names) {
+void Maneuver::set_begin_street_names(const std::vector<std::pair<std::string, bool>>& names) {
   begin_street_names_ = midgard::make_unique<StreetNamesUs>(names);
 }
 
@@ -133,11 +201,15 @@ bool Maneuver::HasBeginStreetNames() const {
   return (!begin_street_names_->empty());
 }
 
+void Maneuver::ClearBeginStreetNames() {
+  begin_street_names_->clear();
+}
+
 const StreetNames& Maneuver::cross_street_names() const {
   return *cross_street_names_;
 }
 
-void Maneuver::set_cross_street_names(const std::vector<std::string>& names) {
+void Maneuver::set_cross_street_names(const std::vector<std::pair<std::string, bool>>& names) {
   cross_street_names_ = midgard::make_unique<StreetNamesUs>(names);
 }
 
@@ -147,6 +219,10 @@ void Maneuver::set_cross_street_names(std::unique_ptr<StreetNames>&& cross_stree
 
 bool Maneuver::HasCrossStreetNames() const {
   return (!cross_street_names_->empty());
+}
+
+void Maneuver::ClearCrossStreetNames() {
+  cross_street_names_->clear();
 }
 
 const std::string& Maneuver::instruction() const {
@@ -512,6 +588,36 @@ void Maneuver::set_verbal_multi_cue(bool verbal_multi_cue) {
   verbal_multi_cue_ = verbal_multi_cue;
 }
 
+bool Maneuver::to_stay_on() const {
+  return to_stay_on_;
+}
+
+void Maneuver::set_to_stay_on(bool to_stay_on) {
+  to_stay_on_ = to_stay_on;
+}
+
+const StreetNames& Maneuver::roundabout_exit_street_names() const {
+  return *roundabout_exit_street_names_;
+}
+
+void Maneuver::set_roundabout_exit_street_names(
+    const std::vector<std::pair<std::string, bool>>& names) {
+  roundabout_exit_street_names_ = midgard::make_unique<StreetNamesUs>(names);
+}
+
+void Maneuver::set_roundabout_exit_street_names(
+    std::unique_ptr<StreetNames>&& roundabout_exit_street_names) {
+  roundabout_exit_street_names_ = std::move(roundabout_exit_street_names);
+}
+
+bool Maneuver::HasRoundaboutExitStreetNames() const {
+  return (!roundabout_exit_street_names_->empty());
+}
+
+void Maneuver::ClearRoundaboutExitStreetNames() {
+  roundabout_exit_street_names_->clear();
+}
+
 TripPath_TravelMode Maneuver::travel_mode() const {
   return travel_mode_;
 }
@@ -696,6 +802,7 @@ void Maneuver::set_verbal_formatter(std::unique_ptr<VerbalTextFormatter>&& verba
   verbal_formatter_ = std::move(verbal_formatter);
 }
 
+#ifdef LOGGING_LEVEL_TRACE
 std::string Maneuver::ToString() const {
   std::string man_str;
   man_str.reserve(256);
@@ -855,7 +962,7 @@ std::string Maneuver::ToParameterString() const {
   man_str.reserve(256);
 
   man_str += "TripDirections_Maneuver_Type_";
-  man_str += TripDirections_Maneuver_Type_descriptor()->FindValueByNumber(type_)->name();
+  man_str += TripDirections_Maneuver_Type_Name(type_);
 
   man_str += delim;
   man_str += street_names_->ToParameterString();
@@ -881,14 +988,11 @@ std::string Maneuver::ToParameterString() const {
   man_str += std::to_string(turn_degree_);
 
   man_str += delim;
-  man_str +=
-      Maneuver::relative_direction_string_.find(static_cast<int>(begin_relative_direction_))->second;
+  man_str += relative_direction_string.find(static_cast<int>(begin_relative_direction_))->second;
 
   man_str += delim;
   man_str += "TripDirections_Maneuver_CardinalDirection_";
-  man_str += TripDirections_Maneuver_CardinalDirection_descriptor()
-                 ->FindValueByNumber(begin_cardinal_direction_)
-                 ->name();
+  man_str += TripDirections_Maneuver_CardinalDirection_Name(begin_cardinal_direction_);
 
   man_str += delim;
   man_str += std::to_string(begin_heading_);
@@ -1012,6 +1116,7 @@ std::string Maneuver::ToParameterString() const {
 
   return man_str;
 }
+#endif
 
 } // namespace odin
 } // namespace valhalla

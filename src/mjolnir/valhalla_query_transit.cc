@@ -1,15 +1,13 @@
 #include <cstdint>
-//#include "mjolnir/transitbuilder.h"
-//#include "mjolnir/graphtilebuilder.h"
 #include <valhalla/proto/transit.pb.h>
 
+#include "baldr/rapidjson_utils.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <fstream>
 #include <iostream>
@@ -19,15 +17,14 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 
-#include "baldr/datetime.h"
 #include "baldr/graphreader.h"
 #include "baldr/tilehierarchy.h"
 #include "midgard/logging.h"
 #include "midgard/util.h"
+#include "mjolnir/servicedays.h"
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
-using namespace valhalla::baldr::DateTime;
 using namespace valhalla::mjolnir;
 
 namespace bpo = boost::program_options;
@@ -190,22 +187,21 @@ void LogDepartures(const Transit& transit, const GraphId& stopid, std::string& f
               counter++;
             }
 
+            auto d = date::floor<date::days>(DateTime::pivot_date_);
             std::string added_dates;
             for (const auto& day : sp.service_added_dates()) {
 
               if (!added_dates.empty()) {
                 added_dates += ", ";
               }
-              boost::gregorian::date adddate(
-                  boost::gregorian::gregorian_calendar::from_julian_day_number(day));
+              date::sys_days adddate = date::sys_days(date::year_month_day(d + date::days(day)));
               added_dates += to_iso_extended_string(adddate);
             }
 
-            boost::gregorian::date start_date(
-                boost::gregorian::gregorian_calendar::from_julian_day_number(
-                    sp.service_start_date()));
-            boost::gregorian::date end_date(
-                boost::gregorian::gregorian_calendar::from_julian_day_number(sp.service_end_date()));
+            date::sys_days start_date =
+                date::sys_days(date::year_month_day(d + date::days(sp.service_start_date())));
+            date::sys_days end_date =
+                date::sys_days(date::year_month_day(d + date::days(sp.service_end_date())));
 
             LOG_INFO(" Route: " + std::to_string(sp.route_index()) +
                      " Trip: " + std::to_string(sp.trip_id()) + " Dep Time: " + ss.str() +
@@ -418,7 +414,7 @@ int main(int argc, char* argv[]) {
 
   // Read config
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config.c_str(), pt);
+  rapidjson::read_json(config, pt);
 
   LOG_INFO("Read config");
 

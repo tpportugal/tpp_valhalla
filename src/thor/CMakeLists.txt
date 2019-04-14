@@ -13,7 +13,6 @@ set(sources
   route_matcher.cc
   timedep_forward.cc
   timedep_reverse.cc
-  trafficalgorithm.cc
   timedistancematrix.cc
   worker.cc
   isochrone_action.cc
@@ -30,6 +29,7 @@ valhalla_module(NAME thor
     PUBLIC
       ${VALHALLA_SOURCE_DIR}
       ${VALHALLA_SOURCE_DIR}/valhalla
+      ${VALHALLA_SOURCE_DIR}/third_party/date/include
     PRIVATE
       ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
       ${CMAKE_BINARY_DIR}
@@ -37,4 +37,6 @@ valhalla_module(NAME thor
     valhalla::proto
     valhalla::sif
     valhalla::meili
+    ${valhalla_protobuf_targets}
+    Boost::boost
     libprime_server)

@@ -90,15 +90,6 @@ void TimeDistanceMatrix::ExpandForward(GraphReader& graphreader,
       continue;
     }
 
-    // Handle transition edges - expand from the end node of the transition
-    // (unless this is called from a transition).
-    if (directededge->IsTransition()) {
-      if (!from_transition) {
-        ExpandForward(graphreader, directededge->endnode(), pred, pred_idx, true);
-      }
-      continue;
-    }
-
     // Skip this edge if permanently labeled (best path already found to this
     // directed edge), if no access is allowed to this edge (based on costing
     // method), or if a complex restriction prevents this path.
@@ -132,6 +123,14 @@ void TimeDistanceMatrix::ExpandForward(GraphReader& graphreader,
                              distance);
     *es = {EdgeSet::kTemporary, idx};
     adjacencylist_->add(idx);
+  }
+
+  // Handle transitions - expand from the end node each transition
+  if (!from_transition && nodeinfo->transition_count() > 0) {
+    const NodeTransition* trans = tile->transition(nodeinfo->transition_index());
+    for (uint32_t i = 0; i < nodeinfo->transition_count(); ++i, ++trans) {
+      ExpandForward(graphreader, trans->endnode(), pred, pred_idx, true);
+    }
   }
 }
 
@@ -244,15 +243,6 @@ void TimeDistanceMatrix::ExpandReverse(GraphReader& graphreader,
       continue;
     }
 
-    // Handle transition edges - expand from the end node of the transition
-    // (unless this is called from a transition).
-    if (directededge->IsTransition()) {
-      if (!from_transition) {
-        ExpandReverse(graphreader, directededge->endnode(), pred, pred_idx, true);
-      }
-      continue;
-    }
-
     // Get opposing edge Id and end node tile
     const GraphTile* t2 =
         directededge->leaves_tile() ? graphreader.GetGraphTile(directededge->endnode()) : tile;
@@ -293,6 +283,14 @@ void TimeDistanceMatrix::ExpandReverse(GraphReader& graphreader,
                              distance);
     *es = {EdgeSet::kTemporary, idx};
     adjacencylist_->add(idx);
+  }
+
+  // Handle transitions - expand from the end node each transition
+  if (!from_transition && nodeinfo->transition_count() > 0) {
+    const NodeTransition* trans = tile->transition(nodeinfo->transition_index());
+    for (uint32_t i = 0; i < nodeinfo->transition_count(); ++i, ++trans) {
+      ExpandReverse(graphreader, trans->endnode(), pred, pred_idx, true);
+    }
   }
 }
 
@@ -422,8 +420,13 @@ void TimeDistanceMatrix::SetOriginOneToMany(GraphReader& graphreader, const odin
       continue;
     }
 
+    // Disallow any user avoid edges if the avoid location is ahead of the origin along the edge
+    GraphId edgeid(edge.graph_id());
+    if (costing_->AvoidAsOriginEdge(edgeid, edge.percent_along())) {
+      continue;
+    }
+
     // Get the directed edge
-    GraphId edgeid = static_cast<GraphId>(edge.graph_id());
     const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     const DirectedEdge* directededge = tile->directededge(edgeid);
 
@@ -459,8 +462,13 @@ void TimeDistanceMatrix::SetOriginOneToMany(GraphReader& graphreader, const odin
 void TimeDistanceMatrix::SetOriginManyToOne(GraphReader& graphreader, const odin::Location& dest) {
   // Iterate through edges and add opposing edges to adjacency list
   for (const auto& edge : dest.path_edges()) {
+    // Disallow any user avoided edges if the avoid location is behind the destination along the edge
+    GraphId edgeid(edge.graph_id());
+    if (costing_->AvoidAsDestinationEdge(edgeid, edge.percent_along())) {
+      continue;
+    }
+
     // Get the directed edge
-    GraphId edgeid = static_cast<GraphId>(edge.graph_id());
     const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     const DirectedEdge* directededge = tile->directededge(edgeid);
 
@@ -507,14 +515,24 @@ void TimeDistanceMatrix::SetDestinations(
   // For each destination
   uint32_t idx = 0;
   for (const auto& loc : locations) {
-    // Add a destination and get a reference to it
-    destinations_.emplace_back();
-    Destination& d = destinations_.back();
-
     // Set up the destination - consider each possible location edge.
+    bool added = false;
     for (const auto& edge : loc.path_edges()) {
-      // Keep the id and the partial distance for the
-      // remainder of the edge.
+      // Disallow any user avoided edges if the avoid location is behind the destination along the
+      // edge
+      GraphId edgeid(edge.graph_id());
+      if (costing_->AvoidAsDestinationEdge(edgeid, edge.percent_along())) {
+        continue;
+      }
+
+      // Add a destination if this is the first allowed edge for the location
+      if (!added) {
+        destinations_.emplace_back();
+        added = true;
+      }
+
+      // Keep the id and the partial distance for the remainder of the edge.
+      Destination& d = destinations_.back();
       d.dest_edges[edge.graph_id()] = (1.0f - edge.percent_along());
 
       // Form a threshold cost (the total cost to traverse the edge)
@@ -546,19 +564,21 @@ void TimeDistanceMatrix::SetDestinationsManyToOne(
   // For each destination
   uint32_t idx = 0;
   for (const auto& loc : locations) {
-    // Add a destination and get a reference to it
-    destinations_.emplace_back();
-    Destination& d = destinations_.back();
-
     // Set up the destination - consider each possible location edge.
+    bool added = false;
     for (const auto& edge : loc.path_edges()) {
-      // Get the opposing directed edge Id - this is the edge marked as the
-      // "destination" - but the cost is based on the forward path along the
-      // initial edge.
+      // Get the opposing directed edge Id - this is the edge marked as the "destination",
+      // but the cost is based on the forward path along the initial edge.
       GraphId opp_edge_id = graphreader.GetOpposingEdgeId(static_cast<GraphId>(edge.graph_id()));
 
-      // Keep the id and the partial distance for the
-      // remainder of the edge.
+      // Add a destination if this is the first allowed edge for the location
+      if (!added) {
+        destinations_.emplace_back();
+        added = true;
+      }
+
+      // Keep the id and the partial distance for the remainder of the edge.
+      Destination& d = destinations_.back();
       d.dest_edges[opp_edge_id] = edge.percent_along();
 
       // Form a threshold cost (the total cost to traverse the edge)

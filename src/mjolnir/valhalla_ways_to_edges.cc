@@ -7,10 +7,10 @@
 
 #include "config.h"
 
+#include "baldr/rapidjson_utils.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <ostream>
 
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 
   // Get the config to see which coverage we are using
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config_file_path.c_str(), pt);
+  rapidjson::read_json(config_file_path.c_str(), pt);
 
   // Get something we can use to fetch tiles
   auto tile_properties = pt.get_child("mjolnir");
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     const GraphTile* tile = reader.GetGraphTile(edge_id);
     for (uint32_t n = 0; n < tile->header()->directededgecount(); n++, ++edge_id) {
       const DirectedEdge* edge = tile->directededge(edge_id);
-      if (edge->IsTransition() || edge->IsTransitLine() || edge->use() == Use::kTransitConnection ||
+      if (edge->IsTransitLine() || edge->use() == Use::kTransitConnection ||
           edge->use() == Use::kEgressConnection || edge->use() == Use::kPlatformConnection) {
         continue;
       }

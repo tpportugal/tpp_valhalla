@@ -19,10 +19,14 @@ valhalla_module(NAME tyr
     PUBLIC
       ${VALHALLA_SOURCE_DIR}
       ${VALHALLA_SOURCE_DIR}/valhalla
+      ${VALHALLA_SOURCE_DIR}/third_party/date/include
     PRIVATE
       ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
       ${CMAKE_BINARY_DIR}
   DEPENDS
     valhalla::loki
     valhalla::thor
-    valhalla::odin)
+    valhalla::odin
+    valhalla::proto
+    ${valhalla_protobuf_targets}
+    Boost::boost)

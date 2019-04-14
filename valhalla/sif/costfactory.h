@@ -13,9 +13,7 @@
 #include <valhalla/sif/pedestriancost.h>
 #include <valhalla/sif/transitcost.h>
 #include <valhalla/sif/truckcost.h>
-
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
+#include <valhalla/worker.h>
 
 namespace valhalla {
 namespace sif {
@@ -54,9 +52,6 @@ public:
     auto itr = factory_funcs_.find(costing);
     if (itr == factory_funcs_.end()) {
       auto costing_str = odin::Costing_Name(costing);
-      if (costing_str.back() == '_') {
-        costing_str.pop_back();
-      }
       throw std::runtime_error("No costing method found for '" + costing_str + "'");
     }
     // create the cost using the function pointer
@@ -73,6 +68,7 @@ public:
     Register(odin::Costing::bicycle, CreateBicycleCost);
     Register(odin::Costing::bus, CreateBusCost);
     Register(odin::Costing::hov, CreateHOVCost);
+    Register(odin::Costing::taxi, CreateTaxiCost);
     Register(odin::Costing::motor_scooter, CreateMotorScooterCost);
     Register(odin::Costing::motorcycle, CreateMotorcycleCost);
     Register(odin::Costing::pedestrian, CreatePedestrianCost);

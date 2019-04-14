@@ -5,12 +5,11 @@
 #include <utility>
 #include <vector>
 
+#include "baldr/rapidjson_utils.h"
 #include <boost/optional/optional.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include "baldr/json.h"
-#include "exception.h"
 #include "meili/map_matcher.h"
 #include "meili/map_matcher_factory.h"
 #include "midgard/distanceapproximator.h"
@@ -19,6 +18,7 @@
 #include "midgard/util.h"
 #include "mjolnir/util.h"
 #include "tyr/actor.h"
+#include "worker.h"
 
 using namespace valhalla;
 
@@ -69,7 +69,7 @@ boost::property_tree::ptree json_to_pt(const std::string& json) {
   std::stringstream ss;
   ss << json;
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(ss, pt);
+  rapidjson::read_json(ss, pt);
   return pt;
 }
 
@@ -94,6 +94,7 @@ const auto conf = json_to_pt(R"({
       "bicycle": {"max_distance": 500000.0,"max_locations": 50,"max_matrix_distance": 200000.0,"max_matrix_locations": 50},
       "bus": {"max_distance": 5000000.0,"max_locations": 50,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
       "hov": {"max_distance": 5000000.0,"max_locations": 20,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
+      "taxi": {"max_distance": 5000000.0,"max_locations": 20,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
       "isochrone": {"max_contours": 4,"max_distance": 25000.0,"max_locations": 1,"max_time": 120},
       "max_avoid_locations": 50,"max_radius": 200,"max_reachability": 100,
       "multimodal": {"max_distance": 500000.0,"max_locations": 50,"max_matrix_distance": 0.0,"max_matrix_locations": 0},
@@ -114,10 +115,10 @@ std::string json_escape(const std::string& unescaped) {
   return escaped;
 }
 
-int seed = 973;
+int seed = 520;
 int bound = 81;
 std::string make_test_case(PointLL& start, PointLL& end) {
-  static std::default_random_engine generator(seed);
+  static std::minstd_rand0 generator(seed);
   static std::uniform_real_distribution<float> distribution(0, 1);
   float distance = 0;
   do {
@@ -130,9 +131,8 @@ std::string make_test_case(PointLL& start, PointLL& end) {
     // try again if they are too close or too far apart
   } while (distance < 1000 || distance > 2000);
   return R"({"costing":"auto","locations":[{"lat":)" + std::to_string(start.second) + R"(,"lon":)" +
-         std::to_string(start.first) +
-         R"(},{"lat":)" + std::to_string(end.second) + R"(,"lon":)" + std::to_string(end.first) +
-         "}]}";
+         std::to_string(start.first) + R"(},{"lat":)" + std::to_string(end.second) + R"(,"lon":)" +
+         std::to_string(end.first) + "}]}";
 }
 
 void test_matcher() {
@@ -189,7 +189,7 @@ void test_matcher() {
     }
     // simulate gps from the route shape
     std::vector<float> accuracies;
-    auto simulation = simulate_gps(segments, accuracies, 50, 100.f, 1);
+    auto simulation = simulate_gps(segments, accuracies, 50, 75.f, 1);
     auto locations = to_locations(simulation, accuracies, 1);
     // get a trace-attributes from the simulated gps
     auto matched = json_to_pt(actor.trace_attributes(
@@ -492,7 +492,7 @@ void test_topk_frontage_alternate() {
            {"lat":52.0796213915245,"lon":5.139262676239015,"accuracy":10},
            {"lat":52.079637875461195,"lon":5.139581859111787,"accuracy":10},
            {"lat":52.07964776582031,"lon":5.139828622341157,"accuracy":10},
-           {"lat":52.07965600778458,"lon":5.1402121782302865,"accuracy":10}]})"));
+           {"lat":52.07985600778458,"lon":5.1404121782302865,"accuracy":10}]})"));
 
   /*** Primary path - use main road
     {"type":"FeatureCollection","features":[
@@ -555,12 +555,12 @@ void test_topk_frontage_alternate() {
       names.push_back("<empty>");
     }
   }
-  if (names != std::vector<std::string>{"Rubenslaan"}) {
+  if (names != std::vector<std::string>{"Rubenslaan", "Rubenslaan", "Rubenslaan"}) {
     std::string streets;
     for (const auto& n : names)
       streets += n + ", ";
     throw std::logic_error(
-        "The second most obvious result is fronatge road to the right - but got: " + streets);
+        "The second most obvious result is frontage road to the right - but got: " + streets);
   }
   if (alternate.get<float>("confidence_score") >= 1.0f)
     throw std::logic_error("Confidence of the second result is always less than 1");

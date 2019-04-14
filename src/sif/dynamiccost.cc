@@ -15,8 +15,8 @@ DynamicCost::DynamicCost(const odin::DirectionsOptions& options, const TravelMod
   }
 
   // Add avoid edges to internal set
-  for (auto& edgeid : options.avoid_edges()) {
-    user_avoid_edges_.insert(GraphId(edgeid));
+  for (auto& edge : options.avoid_edges()) {
+    user_avoid_edges_.insert({GraphId(edge.id()), edge.percent_along()});
   }
 }
 
@@ -52,7 +52,8 @@ Cost DynamicCost::EdgeCost(const baldr::DirectedEdge* edge, const uint32_t speed
 // costs (i.e., intersection/turn costs) must override this method.
 Cost DynamicCost::TransitionCost(const DirectedEdge* edge,
                                  const NodeInfo* node,
-                                 const EdgeLabel& pred) const {
+                                 const EdgeLabel& pred,
+                                 const bool has_traffic) const {
   return {0.0f, 0.0f};
 }
 
@@ -63,7 +64,8 @@ Cost DynamicCost::TransitionCost(const DirectedEdge* edge,
 Cost DynamicCost::TransitionCostReverse(const uint32_t idx,
                                         const baldr::NodeInfo* node,
                                         const baldr::DirectedEdge* opp_edge,
-                                        const baldr::DirectedEdge* opp_pred_edge) const {
+                                        const baldr::DirectedEdge* opp_pred_edge,
+                                        const bool has_traffic) const {
   return {0.0f, 0.0f};
 }
 
@@ -168,9 +170,9 @@ bool DynamicCost::IsExcluded(const baldr::GraphTile*& tile, const baldr::NodeInf
 }
 
 // Adds a list of edges (GraphIds) to the user specified avoid list.
-void DynamicCost::AddUserAvoidEdges(const std::vector<GraphId>& avoid_edges) {
-  for (auto edgeid : avoid_edges) {
-    user_avoid_edges_.insert(edgeid);
+void DynamicCost::AddUserAvoidEdges(const std::vector<AvoidEdge>& avoid_edges) {
+  for (auto edge : avoid_edges) {
+    user_avoid_edges_.insert({edge.id, edge.percent_along});
   }
 }
 

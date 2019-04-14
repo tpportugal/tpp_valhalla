@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <valhalla/proto/directions_options.pb.h>
 #include <valhalla/proto/trippath.pb.h>
@@ -101,20 +103,32 @@ public:
 
   bool IsStraightest(uint32_t prev2curr_turn_degree, uint32_t straightest_xedge_turn_degree) const;
 
-  std::vector<std::string> GetNameList() const;
+  std::vector<std::pair<std::string, bool>> GetNameList() const;
 
   float GetLength(const DirectionsOptions::Units& units);
 
   std::string ToString() const;
 
+#ifdef LOGGING_LEVEL_TRACE
   std::string ToParameterString() const;
+#endif
 
 protected:
-  std::string
-  ListToString(const ::google::protobuf::RepeatedPtrField<::std::string>& string_list) const;
+#ifdef LOGGING_LEVEL_TRACE
+  std::string StreetNamesToString(
+      const ::google::protobuf::RepeatedPtrField<::valhalla::odin::StreetName>& street_names) const;
 
-  std::string
-  ListToParameterString(const ::google::protobuf::RepeatedPtrField<::std::string>& string_list) const;
+  std::string StreetNamesToParameterString(
+      const ::google::protobuf::RepeatedPtrField<::valhalla::odin::StreetName>& street_names) const;
+
+  std::string SignElementsToString(
+      const ::google::protobuf::RepeatedPtrField<::valhalla::odin::TripPath_SignElement>&
+          sign_elements) const;
+
+  std::string SignElementsToParameterString(
+      const ::google::protobuf::RepeatedPtrField<::valhalla::odin::TripPath_SignElement>&
+          sign_elements) const;
+#endif
 };
 
 class EnhancedTripPath_IntersectingEdge : public TripPath_IntersectingEdge {
@@ -176,6 +190,8 @@ public:
 
   bool HasIntersectingEdgeNameConsistency() const;
 
+  bool HasIntersectingEdgeCurrNameConsistency() const;
+
   EnhancedTripPath_IntersectingEdge* GetIntersectingEdge(size_t index);
 
   void CalculateRightLeftIntersectingEdgeCounts(uint32_t from_heading,
@@ -193,6 +209,9 @@ public:
 
   uint32_t GetStraightestTraversableIntersectingEdgeTurnDegree(uint32_t from_heading,
                                                                const TripPath_TravelMode travel_mode);
+
+  bool IsStraightestTraversableIntersectingEdgeReversed(uint32_t from_heading,
+                                                        const TripPath_TravelMode travel_mode);
 
   // Type
   bool IsStreetIntersection() const;

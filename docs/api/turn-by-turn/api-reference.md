@@ -6,10 +6,6 @@ Valhalla's routing service (a.k.a. turn-by-turn), is an open-source routing serv
 
 The default logic for the OpenStreetMap tags, keys, and values used when routing are documented on an [OSM wiki page](http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Valhalla).
 
-## Using the hosted Mapbox Routing Service
-
-The Mapbox routing service requires an access token. In a request, you must append your own access_token to the request URL, following access_token=. See the [Mapbox API documentation](https://www.mapbox.com/api-documentation/#access-tokens) for more on access tokens. Contact Mapbox for instructions on accessing this API.
-
 ## Inputs of a route
 
 The route request run locally takes the form of `localhost:8002/route?json={}`, where the JSON inputs inside the `{}` include location information, name and options for the costing model, and output options. Here is the JSON payload for an example request:
@@ -68,6 +64,7 @@ Valhalla's routing service uses dynamic, run-time costing to generate the route 
 | `bicycle` | Standard costing for travel by bicycle, with a slight preference for using [cycleways](http://wiki.openstreetmap.org/wiki/Key:cycleway) or roads with bicycle lanes. Bicycle routes follow regular roads when needed, but avoid roads without bicycle access. |
 | `bus` | Standard costing for bus routes. Bus costing inherits the auto costing behaviors, but checks for bus access on the roads. |
 | `hov` | Standard costing for high-occupancy vehicle (HOV) routes. HOV costing inherits the auto costing behaviors, but checks for HOV lane access on the roads and favors those roads.|
+| `taxi` | Standard costing for taxi routes. Taxi costing inherits the auto costing behaviors, but checks for taxi lane access on the roads and favors those roads.|
 | `motor_scooter` | Standard costing for travel by motor scooter or moped.  By default, motor_scooter costing will avoid higher class roads unless the country overrides allows motor scooters on these roads.  Motor scooter routes follow regular roads when needed, but avoid roads without motor_scooter, moped, or mofa access. |
 |**BETA** `motorcycle` | Standard costing for travel by motorcycle.  This costing model provides options to tune the route to take roadways (road touring) vs. tracks and trails (adventure motorcycling).|
 | `multimodal` | Currently supports pedestrian and transit. In the future, multimodal will support a combination of all of the above. |
@@ -126,7 +123,7 @@ All of the options described above for autos also apply to motor_scooter costing
 
 | Motor_scooter options | Description |
 | :-------------------------- | :----------- |
-| `top_speed` | Top speed the motorized scooter can go. Used to avoid roads with higher speeds than this value.  The default value is 45 KPH (~28 MPH) |
+| `top_speed` | Top speed the motorized scooter can go. Used to avoid roads with higher speeds than this value.  This value must be between 20 and 120 KPH. The default value is 45 KPH (~28 MPH) |
 | `use_primary` | A riders's propensity to use primary roads. This is a range of values from 0 to 1, where 0 attempts to avoid primary roads, and 1 indicates the rider is more comfortable riding on primary roads. Based on the `use_primary` factor, roads with certain classifications and higher speeds are penalized in an attempt to avoid them when finding the best path. The default value is 0.5. |
 | `use_hills` | A riders's desire to tackle hills in their routes. This is a range of values from 0 to 1, where 0 attempts to avoid hills and steep grades even if it means a longer (time and distance) path, while 1 indicates the rider does not fear hills and steeper grades. Based on the `use_hills` factor, penalties are applied to roads based on elevation change and grade. These penalties help the path avoid hilly roads in favor of flatter roads or less steep grades where available. Note that it is not always possible to find alternate paths to avoid hills (for example when route locations are in mountainous areas). The default value is 0.5. |
 
@@ -208,7 +205,8 @@ A multimodal request with a filter for certain Onestop IDs:
 | :------------------ | :----------- |
 | `units` | Distance units for output. Allowable unit types are miles (or mi) and kilometers (or km). If no unit type is specified, the units default to kilometers. |
 | `language` | The language of the narration instructions based on the [IETF BCP 47](https://tools.ietf.org/html/bcp47) language tag string. If no language is specified or the specified language is unsupported, United States-based English (en-US) is used. [Currently supported language list](#supported-language-tags) |
-| `narrative` |  Boolean to allow you to disable narrative production. Locations, shape, length, and time are still returned. The narrative production is enabled by default. Set the value to `false` to disable the narrative. |
+| `directions_type` |  An enum with 3 values. <ul><li>`none` indicating no maneuvers or instructions should be returned.</li><li>`maneuvers` indicating that only maneuvers be returned.</li><li>`instructions` indicating that maneuvers with instructions should be returned (this is the default if not specified).</li></ul> |
+| `narrative` |  **DEPRECATED** Should use `directions_type` instead. Boolean to allow you to disable narrative production. Locations, shape, length, and time are still returned. The narrative production is enabled by default. Set the value to `false` to disable the narrative. |
 
 ##### Supported language tags
 

@@ -22,32 +22,43 @@ constexpr size_t AVERAGE_MM_TILE_SIZE = 1024;         // 1k
 namespace valhalla {
 namespace baldr {
 
-struct GraphReader::tile_extract_t : public midgard::tar {
-  tile_extract_t(const boost::property_tree::ptree& pt)
-      : tar(pt.get<std::string>("tile_extract", "")) {
+struct GraphReader::tile_extract_t {
+  tile_extract_t(const boost::property_tree::ptree& pt) {
     // if you really meant to load it
     if (pt.get_optional<std::string>("tile_extract")) {
-      // map files to graph ids
-      for (auto& c : contents) {
-        try {
-          auto id = GraphTile::GetTileId(c.first);
-          tiles[id] = std::make_pair(const_cast<char*>(c.second.first), c.second.second);
-        } catch (...) {}
-      }
-      // couldn't load it
-      if (tiles.empty()) {
-        LOG_WARN("Tile extract could not be loaded");
-      } // loaded ok but with possibly bad blocks
-      else {
-        LOG_INFO("Tile extract successfully loaded");
-        if (corrupt_blocks) {
-          LOG_WARN("Tile extract had " + std::to_string(corrupt_blocks) + " corrupt blocks");
+      try {
+        // load the tar
+        archive.reset(new midgard::tar(pt.get<std::string>("tile_extract")));
+        // map files to graph ids
+        for (auto& c : archive->contents) {
+          try {
+            auto id = GraphTile::GetTileId(c.first);
+            tiles[id] = std::make_pair(const_cast<char*>(c.second.first), c.second.second);
+          } catch (...) {
+            // skip files we dont understand
+          }
         }
+        // couldn't load it
+        if (tiles.empty()) {
+          LOG_WARN("Tile extract contained no usuable tiles");
+        } // loaded ok but with possibly bad blocks
+        else {
+          LOG_INFO("Tile extract successfully loaded with tile count: " +
+                   std::to_string(tiles.size()));
+          if (archive->corrupt_blocks) {
+            LOG_WARN("Tile extract had " + std::to_string(archive->corrupt_blocks) +
+                     " corrupt blocks");
+          }
+        }
+      } catch (const std::exception& e) {
+        LOG_ERROR(e.what());
+        LOG_WARN("Tile extract could not be loaded");
       }
     }
   }
   // TODO: dont remove constness, and actually make graphtile read only?
   std::unordered_map<uint64_t, std::pair<char*, size_t>> tiles;
+  std::shared_ptr<midgard::tar> archive;
 };
 
 std::shared_ptr<const GraphReader::tile_extract_t>
@@ -292,10 +303,11 @@ bool GraphReader::AreEdgesConnected(const GraphId& edge1, const GraphId& edge2) 
     if (n1.level() == n2.level()) {
       return false;
     } else {
-      uint32_t n = 0, id = 0;
-      const DirectedEdge* de = GetGraphTile(n1)->GetDirectedEdges(n1.id(), n, id);
-      for (uint32_t i = 0; i < n; i++, de++) {
-        if (de->IsTransition() && de->endnode() == n2) {
+      const GraphTile* tile = GetGraphTile(n1);
+      const NodeInfo* ni = tile->node(n1);
+      const NodeTransition* trans = tile->transition(ni->transition_index());
+      for (uint32_t i = 0; i < ni->transition_count(); ++i, ++trans) {
+        if (trans->endnode() == n2) {
           return true;
         }
       }
@@ -344,9 +356,9 @@ bool GraphReader::AreEdgesConnectedForward(const GraphId& edge1,
 
   // If edge2 is on a different tile level transition to the node on that level
   if (edge2.level() != endnode.level()) {
-    for (const auto& edge : tile->GetDirectedEdges(endnode)) {
-      if (edge.IsTransition() && edge.endnode().level() == edge2.level()) {
-        endnode = edge.endnode();
+    for (const auto& trans : tile->GetNodeTransitions(endnode)) {
+      if (trans.endnode().level() == edge2.level()) {
+        endnode = trans.endnode();
         tile = GetGraphTile(endnode);
         if (tile == nullptr) {
           return false;
@@ -371,7 +383,7 @@ GraphId GraphReader::GetShortcut(const GraphId& id) {
     const DirectedEdge* continuing_edge = static_cast<const DirectedEdge*>(nullptr);
     const DirectedEdge* directededge = tile->directededge(idx);
     for (uint32_t i = 0; i < nodeinfo->edge_count(); i++, directededge++, idx++) {
-      if (directededge->IsTransition() || idx == edgeid.id() || directededge->is_shortcut() ||
+      if (idx == edgeid.id() || directededge->is_shortcut() ||
           directededge->use() == Use::kTransitConnection ||
           directededge->use() == Use::kEgressConnection ||
           directededge->use() == Use::kPlatformConnection) {

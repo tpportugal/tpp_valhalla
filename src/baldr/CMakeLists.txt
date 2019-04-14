@@ -1,24 +1,45 @@
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/date_time_zonespec.h
-  COMMAND ${CMAKE_COMMAND} -P ${VALHALLA_SOURCE_DIR}/cmake/Binary2Header.cmake
-      ${VALHALLA_SOURCE_DIR}/date_time/zonespec.csv
-      ${CMAKE_CURRENT_BINARY_DIR}/date_time_zonespec.h
-      --variable-name date_time_zonespec_csv --skip 1 --raw
+## Process the IANA Time Zone Database files
+set(tz_db_files africa antarctica asia australasia backward etcetera europe
+  pacificnew northamerica southamerica systemv leapseconds)
+
+foreach(tz_db_file ${tz_db_files})
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/date_time_${tz_db_file}.h
+    COMMAND ${CMAKE_COMMAND} -DMSVC=${MSVC} -P ${VALHALLA_SOURCE_DIR}/cmake/Binary2Header.cmake
+        ${VALHALLA_SOURCE_DIR}/date_time/${tz_db_file}
+        ${CMAKE_CURRENT_BINARY_DIR}/date_time_${tz_db_file}.h
+        --variable-name date_time_${tz_db_file} --skip 1 --raw
+    WORKING_DIRECTORY ${VALHALLA_SOURCE_DIR}
+    COMMENT "Compiling date_time/${tz_db_file} to date_time_${tz_db_file}.h"
+    DEPENDS ${VALHALLA_SOURCE_DIR}/date_time/${tz_db_file})
+endforeach()
+
+## Process the windowsZones.xml file
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/date_time_windows_zones.h
+  COMMAND ${CMAKE_COMMAND} -DMSVC=${MSVC} -P ${VALHALLA_SOURCE_DIR}/cmake/Binary2Header.cmake
+      ${VALHALLA_SOURCE_DIR}/date_time/windowsZones.xml
+      ${CMAKE_CURRENT_BINARY_DIR}/date_time_windows_zones.h
+      --variable-name date_time_windows_zones_xml --skip 1 --raw
   WORKING_DIRECTORY ${VALHALLA_SOURCE_DIR}
-  COMMENT "Compiling date_time/zonespec.csv to date_time_zonespec.h"
-  DEPENDS ${VALHALLA_SOURCE_DIR}/date_time/zonespec.csv)
+  COMMENT "Compiling date_time/windowsZones.xml to date_time_windows_zones.h"
+  DEPENDS ${VALHALLA_SOURCE_DIR}/date_time/windowsZones.xml)
 
 file(GLOB headers ${VALHALLA_SOURCE_DIR}/valhalla/baldr/*.h)
 
-valhalla_module(NAME baldr
-  SOURCES
-    ${CMAKE_CURRENT_BINARY_DIR}/date_time_zonespec.h
+set(includes
+    ${VALHALLA_SOURCE_DIR}
+     ${VALHALLA_SOURCE_DIR}/valhalla
+     $<$<BOOL:${MSVC}>:${VALHALLA_SOURCE_DIR}/third_party/dirent/include>
+     ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
+     ${VALHALLA_SOURCE_DIR}/third_party/date/include)
+
+set(sources
     accessrestriction.cc
     admin.cc
     compression_utils.cc
     connectivity_map.cc
+    curler.cc
     datetime.cc
     directededge.cc
-    edge_elevation.cc
     edgeinfo.cc
     graphid.cc
     graphreader.cc
@@ -45,22 +66,47 @@ valhalla_module(NAME baldr
     verbal_text_formatter_us.cc
     verbal_text_formatter_us_co.cc
     verbal_text_formatter_us_tx.cc
-    verbal_text_formatter_factory.cc
+    verbal_text_formatter_factory.cc)
+
+#basic timezone stuff
+list(APPEND sources
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_africa.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_antarctica.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_asia.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_australasia.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_backward.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_etcetera.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_europe.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_leapseconds.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_northamerica.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_pacificnew.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_southamerica.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_systemv.h
+    ${CMAKE_CURRENT_BINARY_DIR}/date_time_windows_zones.h
+    tz_alt.cpp)
+
+#ios we have more work to make use of system tzdb
+if(APPLE)
+  list(APPEND includes ${VALHALLA_SOURCE_DIR}/third_party/date/include/date)
+  list(APPEND sources ${VALHALLA_SOURCE_DIR}/third_party/date/src/ios.mm)
+endif()
+
+valhalla_module(NAME baldr
+  SOURCES
+    ${sources}
 
   HEADERS
     ${headers}
   INCLUDE_DIRECTORIES
     PUBLIC
-      ${VALHALLA_SOURCE_DIR}
-      ${VALHALLA_SOURCE_DIR}/valhalla
-      ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
+      ${includes}
     PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}
+
   DEPENDS
     valhalla::midgard
-    Boost::date_time
-    Boost::filesystem
-    Boost::iostreams
-    Boost::system
+    valhalla::proto
+    ${valhalla_protobuf_targets}
+    Boost::boost
     CURL::CURL
     ZLIB::ZLIB)

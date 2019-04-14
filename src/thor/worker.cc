@@ -7,10 +7,8 @@
 #include <vector>
 
 #include "baldr/json.h"
-#include "exception.h"
 #include "midgard/constants.h"
 #include "midgard/logging.h"
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include "thor/isochrone.h"
@@ -26,6 +24,13 @@ using namespace valhalla::sif;
 using namespace valhalla::thor;
 
 namespace {
+
+// Default maximum distance allowed for time dependent routes. Since these use
+// single direction A* there may be performance issues allowing very long
+// routes. Also, for long routes the accuracy of predicted time along the
+// route starts to become suspect (due to user breaks and other factors).
+constexpr float kDefaultMaxTimeDependentDistance = 500000.0f; // 500 km
+
 // Maximum edge score - base this on costing type.
 // Large values can cause very bad performance. Setting this back
 // to 2 hours for bike and pedestrian and 12 hours for driving routes.
@@ -34,10 +39,11 @@ namespace {
 // may want to do this in loki. At this point in thor the costing method
 // has not yet been constructed.
 const std::unordered_map<std::string, float> kMaxDistances = {
-    {"auto_", 43200.0f},         {"auto_data_fix", 43200.0f}, {"auto_shorter", 43200.0f},
+    {"auto", 43200.0f},          {"auto_data_fix", 43200.0f}, {"auto_shorter", 43200.0f},
     {"bicycle", 7200.0f},        {"bus", 43200.0f},           {"hov", 43200.0f},
     {"motor_scooter", 14400.0f}, {"motorcycle", 14400.0f},    {"multimodal", 7200.0f},
     {"pedestrian", 7200.0f},     {"transit", 14400.0f},       {"truck", 43200.0f},
+    {"taxi", 43200.0f},
 };
 // a scale factor to apply to the score so that we bias towards closer results more
 constexpr float kDistanceScale = 10.f;
@@ -48,10 +54,14 @@ constexpr double kMilePerMeter = 0.000621371;
 namespace valhalla {
 namespace thor {
 
-thor_worker_t::thor_worker_t(const boost::property_tree::ptree& config)
-    : mode(valhalla::sif::TravelMode::kPedestrian), matcher_factory(config),
-      reader(matcher_factory.graphreader()),
-      long_request(config.get<float>("thor.logging.long_request")) {
+thor_worker_t::thor_worker_t(const boost::property_tree::ptree& config,
+                             const std::shared_ptr<baldr::GraphReader>& graph_reader)
+    : mode(valhalla::sif::TravelMode::kPedestrian), matcher_factory(config, graph_reader),
+      reader(graph_reader), long_request(config.get<float>("thor.logging.long_request")) {
+  // If we weren't provided with a graph reader make our own
+  if (!reader)
+    reader = matcher_factory.graphreader();
+
   // Register standard edge/node costing methods
   factory.RegisterStandardCostingModels();
 
@@ -60,7 +70,7 @@ thor_worker_t::thor_worker_t(const boost::property_tree::ptree& config)
   auto conf_algorithm = config.get<std::string>("thor.source_to_target_algorithm", "select_optimal");
   for (const auto& kv : config.get_child("service_limits")) {
     if (kv.first == "max_avoid_locations" || kv.first == "max_reachability" ||
-        kv.first == "max_radius") {
+        kv.first == "max_radius" || kv.first == "max_timedep_distance") {
       continue;
     }
     if (kv.first != "skadi" && kv.first != "trace" && kv.first != "isochrone") {
@@ -76,6 +86,9 @@ thor_worker_t::thor_worker_t(const boost::property_tree::ptree& config)
   } else {
     source_to_target_algorithm = SELECT_OPTIMAL;
   }
+
+  max_timedep_distance =
+      config.get<float>("service_limits.max_timedep_distance", kDefaultMaxTimeDependentDistance);
 }
 
 thor_worker_t::~thor_worker_t() {
@@ -153,12 +166,12 @@ worker_t::result_t thor_worker_t::work(const std::list<zmq::message_t>& job,
     double elapsed_time =
         std::chrono::duration<float, std::milli>(std::chrono::system_clock::now() - s).count();
     if (!request.options.do_not_track() && elapsed_time / denominator > long_request) {
-      LOG_WARN("thor::" + odin::DirectionsOptions::Action_Name(request.options.action()) +
+      LOG_WARN("thor::" + odin::DirectionsOptions_Action_Name(request.options.action()) +
                " request elapsed time (ms)::" + std::to_string(elapsed_time));
-      LOG_WARN("thor::" + odin::DirectionsOptions::Action_Name(request.options.action()) +
+      LOG_WARN("thor::" + odin::DirectionsOptions_Action_Name(request.options.action()) +
                " request exceeded threshold::" + request_str);
       midgard::logging::Log("valhalla_thor_long_request_" +
-                                odin::DirectionsOptions::Action_Name(request.options.action()),
+                                odin::DirectionsOptions_Action_Name(request.options.action()),
                             " [ANALYTICS] ");
     }
 
@@ -207,9 +220,6 @@ std::string thor_worker_t::parse_costing(const valhalla_request_t& request) {
   // Parse out the type of route - this provides the costing method to use
   auto costing = request.options.costing();
   auto costing_str = odin::Costing_Name(costing);
-  if (costing_str.back() == '_') {
-    costing_str.pop_back();
-  }
 
   // Set travel mode and construct costing
   if (costing == odin::Costing::multimodal || costing == odin::Costing::transit) {
@@ -320,8 +330,8 @@ void thor_worker_t::cleanup() {
   trace.clear();
   isochrone_gen.Clear();
   matcher_factory.ClearFullCache();
-  if (reader.OverCommitted()) {
-    reader.Clear();
+  if (reader->OverCommitted()) {
+    reader->Clear();
   }
 }
 

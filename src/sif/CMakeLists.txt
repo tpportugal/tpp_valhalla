@@ -17,8 +17,11 @@ valhalla_module(NAME sif
     PUBLIC
       ${VALHALLA_SOURCE_DIR}
       ${VALHALLA_SOURCE_DIR}/valhalla
+      ${VALHALLA_SOURCE_DIR}/third_party/date/include
     PRIVATE
       ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
   DEPENDS
     valhalla::baldr
-    valhalla::proto)
+    valhalla::proto
+    ${valhalla_protobuf_targets}
+    Boost::boost)

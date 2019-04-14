@@ -14,6 +14,9 @@ namespace thor {
 
 constexpr uint64_t kInitialEdgeLabelCount = 500000;
 
+// Number of iterations to allow with no convergence to the destination
+constexpr uint32_t kMaxIterationsWithoutConvergence = 200000;
+
 // Default constructor
 TimeDepForward::TimeDepForward() : AStarPathAlgorithm() {
   mode_ = TravelMode::kDrive;
@@ -27,19 +30,6 @@ TimeDepForward::TimeDepForward() : AStarPathAlgorithm() {
 // Destructor
 TimeDepForward::~TimeDepForward() {
   Clear();
-}
-
-// Get the timezone at the origin.
-int TimeDepForward::GetOriginTimezone(GraphReader& graphreader) {
-  if (edgelabels_.size() == 0) {
-    return -1;
-  }
-  GraphId node = edgelabels_[0].endnode();
-  const GraphTile* tile = graphreader.GetGraphTile(node);
-  if (tile == nullptr) {
-    return -1;
-  }
-  return tile->node(node)->timezone();
 }
 
 // Expand from the node along the forward search path. Immediately expands
@@ -70,56 +60,34 @@ void TimeDepForward::ExpandForward(GraphReader& graphreader,
   if (nodeinfo->timezone() != origin_tz_index_) {
     // Get the difference in seconds between the origin tz and current tz
     int tz_diff =
-        DateTime::timezone_diff(true, localtime, DateTime::get_tz_db().from_index(origin_tz_index_),
+        DateTime::timezone_diff(localtime, DateTime::get_tz_db().from_index(origin_tz_index_),
                                 DateTime::get_tz_db().from_index(nodeinfo->timezone()));
     localtime += tz_diff;
     seconds_of_week = DateTime::normalize_seconds_of_week(seconds_of_week + tz_diff);
   }
 
   // Expand from end node.
-  uint32_t max_shortcut_length = static_cast<uint32_t>(pred.distance() * 0.5f);
   GraphId edgeid(node.tileid(), node.level(), nodeinfo->edge_index());
   EdgeStatusInfo* es = edgestatus_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(nodeinfo->edge_index());
   for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++es) {
-    // Handle transition edges - expand from the end node of the transition
-    // (unless this is called from a transition).
-    if (directededge->trans_up()) {
-      if (!from_transition) {
-        hierarchy_limits_[node.level()].up_transition_count++;
-        ExpandForward(graphreader, directededge->endnode(), pred, pred_idx, true, localtime,
-                      seconds_of_week, destination, best_path);
-      }
-      continue;
-    } else if (directededge->trans_down()) {
-      if (!from_transition &&
-          !hierarchy_limits_[directededge->endnode().level()].StopExpanding(pred.distance())) {
-        ExpandForward(graphreader, directededge->endnode(), pred, pred_idx, true, localtime,
-                      seconds_of_week, destination, best_path);
-      }
-      continue;
-    }
-
-    // Skip shortcut edges for time dependent routes
-    if (directededge->is_shortcut()) {
-      continue;
-    }
-
-    // Skip this edge if permanently labeled (best path already found to this
-    // directed edge), if no access is allowed to this edge (based on costing
-    // method), or if a complex restriction exists.
-    if (es->set() == EdgeSet::kPermanent ||
+    // Skip shortcut edges for time dependent routes. Also skip this edge if permanently labeled
+    // (best path already found to this directed edge), if no access is allowed to this edge
+    // (based on costing method), or if a complex restriction exists.
+    if (directededge->is_shortcut() || es->set() == EdgeSet::kPermanent ||
         !costing_->Allowed(directededge, pred, tile, edgeid, localtime, nodeinfo->timezone()) ||
         costing_->Restricted(directededge, pred, edgelabels_, tile, edgeid, true, localtime,
                              nodeinfo->timezone())) {
       continue;
     }
 
-    // Compute the cost to the end of this edge
+    // Compute the cost to the end of this edge. Transition cost will vary based on whether
+    // there is traffic information.
+    bool has_traffic = directededge->predicted_speed() || directededge->constrained_flow_speed() > 0;
     Cost newcost =
         pred.cost() +
         costing_->EdgeCost(directededge, tile->GetSpeed(directededge, edgeid, seconds_of_week)) +
-        costing_->TransitionCost(directededge, nodeinfo, pred);
+        costing_->TransitionCost(directededge, nodeinfo, pred, has_traffic);
 
     // If this edge is a destination, subtract the partial/remainder cost
     // (cost from the dest. location to the end of the edge).
@@ -171,7 +139,7 @@ void TimeDepForward::ExpandForward(GraphReader& graphreader,
       if (t2 == nullptr) {
         continue;
       }
-      sortcost += astarheuristic_.Get(t2->node(directededge->endnode())->latlng(), dist);
+      sortcost += astarheuristic_.Get(t2->get_node_ll(directededge->endnode()), dist);
     }
 
     // Add to the adjacency list and edge labels.
@@ -179,6 +147,21 @@ void TimeDepForward::ExpandForward(GraphReader& graphreader,
     edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, sortcost, dist, mode_, 0);
     *es = {EdgeSet::kTemporary, idx};
     adjacencylist_->add(idx);
+  }
+
+  // Handle transitions - expand from the end node of each transition
+  if (!from_transition && nodeinfo->transition_count() > 0) {
+    const NodeTransition* trans = tile->transition(nodeinfo->transition_index());
+    for (uint32_t i = 0; i < nodeinfo->transition_count(); ++i, ++trans) {
+      if (trans->up()) {
+        hierarchy_limits_[node.level()].up_transition_count++;
+        ExpandForward(graphreader, trans->endnode(), pred, pred_idx, true, localtime, seconds_of_week,
+                      destination, best_path);
+      } else if (!hierarchy_limits_[trans->endnode().level()].StopExpanding(pred.distance())) {
+        ExpandForward(graphreader, trans->endnode(), pred, pred_idx, true, localtime, seconds_of_week,
+                      destination, best_path);
+      }
+    }
   }
 }
 
@@ -194,10 +177,10 @@ std::vector<PathInfo> TimeDepForward::GetBestPath(odin::Location& origin,
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];
   travel_type_ = costing_->travel_type();
 
-  // date_time must be set on the origin.
+  // date_time must be set on the origin. Log an error but allow routes for now.
   if (!origin.has_date_time()) {
     LOG_ERROR("TimeDepForward called without time set on the origin location");
-    return {};
+    // return {};
   }
 
   // Initialize - create adjacency list, edgestatus support, A*, etc.
@@ -215,7 +198,11 @@ std::vector<PathInfo> TimeDepForward::GetBestPath(odin::Location& origin,
   SetOrigin(graphreader, origin, destination);
 
   // Set the origin timezone to be the timezone at the end node
-  origin_tz_index_ = GetOriginTimezone(graphreader);
+  origin_tz_index_ = edgelabels_.size() == 0 ? 0 : GetTimezone(graphreader, edgelabels_[0].endnode());
+  if (origin_tz_index_ == 0) {
+    // TODO - do not throw exception at this time
+    LOG_ERROR("Could not get the timezone at the origin");
+  }
 
   // Set route start time (seconds from epoch)
   uint64_t start_time =
@@ -279,12 +266,14 @@ std::vector<PathInfo> TimeDepForward::GetBestPath(odin::Location& origin,
     }
 
     // Check that distance is converging towards the destination. Return route
-    // failure if no convergence for TODO iterations
+    // failure if no convergence for TODO iterations. NOTE: due to somewhat high
+    // penalty for entering a destination only (private) road this value needs to
+    // be high.
     float dist2dest = pred.distance();
     if (dist2dest < mindist) {
       mindist = dist2dest;
       nc = 0;
-    } else if (nc++ > 50000) {
+    } else if (nc++ > kMaxIterationsWithoutConvergence) {
       if (best_path.first >= 0) {
         return FormPath(best_path.first);
       } else {

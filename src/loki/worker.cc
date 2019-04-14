@@ -1,4 +1,3 @@
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 #include <functional>
@@ -34,11 +33,17 @@ void loki_worker_t::parse_locations(google::protobuf::RepeatedPtrField<odin::Loc
                                     boost::optional<valhalla_exception_t> required_exception) {
   if (locations->size()) {
     for (auto& location : *locations) {
-      if (location.minimum_reachability() > max_reachability) {
+      if (!location.has_minimum_reachability()) {
+        location.set_minimum_reachability(default_reachability);
+      } else if (location.minimum_reachability() > max_reachability) {
         location.set_minimum_reachability(max_reachability);
       }
-      if (location.radius() > max_radius) {
-        location.set_radius(max_radius);
+      if (!location.has_radius()) {
+        location.set_radius(default_radius);
+      } else {
+        if (location.radius() > max_radius) {
+          location.set_radius(max_radius);
+        }
       }
     }
   } else if (required_exception) {
@@ -54,9 +59,6 @@ void loki_worker_t::parse_costing(valhalla_request_t& request) {
 
   auto costing = request.options.costing();
   auto costing_str = odin::Costing_Name(costing);
-  if (costing_str.back() == '_') {
-    costing_str.pop_back();
-  }
 
   if (!request.options.do_not_track()) {
     valhalla::midgard::logging::Log("costing_type::" + costing_str, " [ANALYTICS] ");
@@ -95,22 +97,40 @@ void loki_worker_t::parse_costing(valhalla_request_t& request) {
     throw valhalla_exception_t{157, std::to_string(max_avoid_locations)};
   }
 
+  // Process avoid locations. Add to a list of edgeids and percent along the edge.
   if (request.options.avoid_locations_size()) {
     try {
       auto avoid_locations = PathLocation::fromPBF(request.options.avoid_locations());
-      auto results = loki::Search(avoid_locations, reader, edge_filter, node_filter);
+      auto results = loki::Search(avoid_locations, *reader, edge_filter, node_filter);
       std::unordered_set<uint64_t> avoids;
       for (const auto& result : results) {
         for (const auto& edge : result.second.edges) {
           auto inserted = avoids.insert(edge.id);
-          GraphId shortcut;
-          if (inserted.second && (shortcut = reader.GetShortcut(edge.id)).Is_Valid()) {
-            avoids.insert(shortcut);
+
+          // If this edge Id was inserted add it to the request options (along with percent along)
+          // Also insert shortcut edge if one includes this edge
+          if (inserted.second) {
+            // Add edge and percent along to pbf
+            auto* avoid = request.options.add_avoid_edges();
+            avoid->set_id(edge.id);
+            avoid->set_percent_along(edge.percent_along);
+
+            // Check if a shortcut exists
+            GraphId shortcut = reader->GetShortcut(edge.id);
+            if (shortcut.Is_Valid()) {
+              // Check if this shortcut has not been added
+              auto shortcut_inserted = avoids.insert(shortcut);
+              if (shortcut_inserted.second) {
+                avoids.insert(shortcut);
+
+                // Add to pbf (with 0 percent along)
+                auto* avoid = request.options.add_avoid_edges();
+                avoid->set_id(shortcut);
+                avoid->set_percent_along(0);
+              }
+            }
           }
         }
-      }
-      for (auto avoid : avoids) {
-        request.options.add_avoid_edges(avoid);
       }
     } // swallow all failures on optional avoids
     catch (...) {
@@ -119,8 +139,9 @@ void loki_worker_t::parse_costing(valhalla_request_t& request) {
   }
 }
 
-loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config)
-    : config(config), reader(config.get_child("mjolnir")),
+loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config,
+                             const std::shared_ptr<baldr::GraphReader>& graph_reader)
+    : config(config), reader(graph_reader),
       connectivity_map(config.get<bool>("loki.use_connectivity", true)
                            ? new connectivity_map_t(config.get_child("mjolnir"))
                            : nullptr),
@@ -131,12 +152,15 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config)
       sample(config.get<std::string>("additional_data.elevation", "test/data/")),
       max_elevation_shape(config.get<size_t>("service_limits.skadi.max_shape")),
       min_resample(config.get<float>("service_limits.skadi.min_resample")) {
+  // If we weren't provided with a graph reader make our own
+  if (!reader)
+    reader.reset(new baldr::GraphReader(config.get_child("mjolnir")));
 
   // Keep a string noting which actions we support, throw if one isnt supported
   odin::DirectionsOptions::Action action;
   for (const auto& kv : config.get_child("loki.actions")) {
     auto path = kv.second.get_value<std::string>();
-    if (!odin::DirectionsOptions::Action_Parse(path, &action)) {
+    if (!odin::DirectionsOptions_Action_Parse(path, &action)) {
       throw std::runtime_error("Action not supported " + path);
     }
     action_str.append("'/" + path + "' ");
@@ -149,7 +173,7 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config)
   // Build max_locations and max_distance maps
   for (const auto& kv : config.get_child("service_limits")) {
     if (kv.first == "max_avoid_locations" || kv.first == "max_reachability" ||
-        kv.first == "max_radius") {
+        kv.first == "max_radius" || kv.first == "max_timedep_distance") {
       continue;
     }
     if (kv.first != "skadi" && kv.first != "trace") {
@@ -204,8 +228,8 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config)
 }
 
 void loki_worker_t::cleanup() {
-  if (reader.OverCommitted()) {
-    reader.Clear();
+  if (reader->OverCommitted()) {
+    reader->Clear();
   }
 }
 

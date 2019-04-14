@@ -102,7 +102,7 @@
     "max_cache_size": 1000000000,
     "shortcuts": true,
     "tile_dir": "test/data/utrecht_tiles",
-    "tile_extract": "/data/valhalla/tiles.tar",
+    "tile_extract": "/dev/null",
     "timezone": "/data/valhalla/tz_world.sqlite",
     "transit_dir": "/data/valhalla/transit"
   },
@@ -142,6 +142,12 @@
       "max_matrix_locations": 50
     },
     "hov": {
+      "max_distance": 5000000.0,
+      "max_locations": 20,
+      "max_matrix_distance": 400000.0,
+      "max_matrix_locations": 50
+    },
+    "taxi": {
       "max_distance": 5000000.0,
       "max_locations": 20,
       "max_matrix_distance": 400000.0,

@@ -16,7 +16,6 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
                                          const bool forward,
                                          const uint32_t length,
                                          const uint32_t speed,
-                                         const uint32_t speed_limit,
                                          const uint32_t truck_speed,
                                          const baldr::Use use,
                                          const RoadClass rc,
@@ -28,7 +27,6 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
   set_endnode(endnode);
   set_use(use);
   set_speed(speed);             // KPH
-  set_speed_limit(speed_limit); // KPH
   set_truck_speed(truck_speed); // KPH
 
   // Protect against 0 length edges
@@ -43,10 +41,9 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
   }
   set_toll(way.toll());
 
+  // Set flag indicating this edge has a bike network
   if (bike_network) {
-    set_bike_network(way.bike_network() | bike_network);
-  } else {
-    set_bike_network(way.bike_network());
+    set_bike_network(true);
   }
 
   set_truck_route(way.truck_route());
@@ -124,6 +121,12 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
   if ((way.hov_forward() && !forward) || (way.hov_backward() && forward)) {
     reverse_access |= kHOVAccess;
   }
+  if ((way.taxi_forward() && forward) || (way.taxi_backward() && !forward)) {
+    forward_access |= kTaxiAccess;
+  }
+  if ((way.taxi_forward() && !forward) || (way.taxi_backward() && forward)) {
+    reverse_access |= kTaxiAccess;
+  }
   if (way.pedestrian()) {
     forward_access |= kPedestrianAccess;
     reverse_access |= kPedestrianAccess;
@@ -137,8 +140,6 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
   // Set access modes
   set_forwardaccess(forward_access);
   set_reverseaccess(reverse_access);
-
-  // TODO: Taxi?
 }
 
 } // namespace mjolnir

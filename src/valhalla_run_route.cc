@@ -16,6 +16,7 @@
 #include "baldr/pathlocation.h"
 #include "baldr/tilehierarchy.h"
 #include "loki/search.h"
+#include "loki/worker.h"
 #include "midgard/distanceapproximator.h"
 #include "midgard/encoded.h"
 #include "midgard/logging.h"
@@ -48,6 +49,10 @@ using namespace valhalla::meili;
 namespace bpo = boost::program_options;
 
 namespace {
+
+// Default maximum distance between locations to choose a time dependent path algorithm
+const float kDefaultMaxTimeDependentDistance = 500000.0f;
+
 class PathStatistics {
   std::pair<float, float> origin;
   std::pair<float, float> destination;
@@ -110,12 +115,20 @@ TripPath PathTest(GraphReader& reader,
                   bool multi_run,
                   uint32_t iterations,
                   bool using_astar,
+                  bool using_bd,
                   bool match_test,
                   const std::string& routetype) {
   auto t1 = std::chrono::high_resolution_clock::now();
   std::vector<PathInfo> pathedges;
   pathedges = pathalgorithm->GetBestPath(origin, dest, reader, mode_costing, mode);
   cost_ptr_t cost = mode_costing[static_cast<uint32_t>(mode)];
+
+  // If bidirectional A*, disable use of destination only edges on the first pass.
+  // If there is a failure, we allow them on the second pass.
+  if (using_bd) {
+    cost->set_allow_destination_only(false);
+  }
+
   cost->set_pass(0);
   data.incPasses();
   if (pathedges.size() == 0 || (routetype == "pedestrian" && pathalgorithm->has_ferry())) {
@@ -126,6 +139,7 @@ TripPath PathTest(GraphReader& reader,
       float relax_factor = (using_astar) ? 16.0f : 8.0f;
       float expansion_within_factor = (using_astar) ? 4.0f : 2.0f;
       cost->RelaxHierarchyLimits(using_astar, expansion_within_factor);
+      cost->set_allow_destination_only(true);
       pathedges = pathalgorithm->GetBestPath(origin, dest, reader, mode_costing, mode);
       data.incPasses();
     }
@@ -183,7 +197,7 @@ TripPath PathTest(GraphReader& reader,
                           reader);
     }
     std::vector<PathInfo> path;
-    bool ret = RouteMatcher::FormPath(mode_costing, mode, reader, trace,
+    bool ret = RouteMatcher::FormPath(mode_costing, mode, reader, trace, false,
                                       directions_options.locations(), path);
     if (ret) {
       LOG_INFO("RouteMatcher succeeded");
@@ -304,9 +318,13 @@ std::string GetFormattedTime(uint32_t seconds) {
 
 TripDirections DirectionsTest(const DirectionsOptions& directions_options,
                               TripPath& trip_path,
-                              const PathLocation& origin,
-                              const PathLocation& destination,
+                              valhalla::odin::Location& orig,
+                              valhalla::odin::Location& dest,
                               PathStatistics& data) {
+  // TEMPORARY? Change to PathLocation...
+  const PathLocation& origin = PathLocation::fromPBF(orig);
+  const PathLocation& destination = PathLocation::fromPBF(dest);
+
   DirectionsBuilder directions;
   TripDirections trip_directions = directions.Build(directions_options, trip_path);
   std::string units = (directions_options.units() == DirectionsOptions::kilometers ? "km" : "mi");
@@ -414,8 +432,8 @@ int main(int argc, char* argv[]) {
       "\n");
 
   std::string json, config;
-  bool connectivity, multi_run, match_test;
-  connectivity = multi_run = match_test = false;
+  bool multi_run = false;
+  bool match_test = false;
   uint32_t iterations;
 
   options.add_options()("help,h", "Print this help message.")("version,v",
@@ -429,7 +447,6 @@ int main(int argc, char* argv[]) {
       "Headquarters\",\"street\":\"405 East 42nd Street\",\"city\":\"New "
       "York\",\"state\":\"NY\",\"postal_code\":\"10017-3507\",\"country\":\"US\"}],\"costing\":"
       "\"auto\",\"directions_options\":{\"units\":\"miles\"}}'")(
-      "connectivity", "Generate a connectivity map before testing the route.")(
       "match-test", "Test RouteMatcher with resulting shape.")(
       "multi-run", bpo::value<uint32_t>(&iterations),
       "Generate the route N additional times before exiting.")
@@ -462,10 +479,6 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
   }
 
-  if (vm.count("connectivity")) {
-    connectivity = true;
-  }
-
   if (vm.count("match-test")) {
     match_test = true;
   }
@@ -479,33 +492,19 @@ int main(int argc, char* argv[]) {
   request.parse(json, valhalla::odin::DirectionsOptions::route);
   const auto& directions_options = request.options;
 
-  // Get type of route - this provides the costing method to use. // Remove the trailing '_'
-  // from 'auto_' - this is a work around since 'auto' is a keyword
+  // Get type of route - this provides the costing method to use.
   std::string routetype = valhalla::odin::Costing_Name(request.options.costing());
-  if (routetype.back() == '_') {
-    routetype.pop_back();
-  }
   LOG_INFO("routetype: " + routetype);
 
   // Locations
   auto locations = valhalla::baldr::PathLocation::fromPBF(directions_options.locations());
-  ;
   if (locations.size() < 2) {
     throw;
   }
 
-  // Add date time settings to the locations
-  if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_current) {
-    locations.front().date_time_ = "current";
-  } else if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_depart_at) {
-    locations.front().date_time_ = directions_options.date_time();
-  } else if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_arrive_by) {
-    locations.back().date_time_ = directions_options.date_time();
-  }
-
   // parse the config
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config.c_str(), pt);
+  rapidjson::read_json(config.c_str(), pt);
 
   // configure logging
   boost::optional<boost::property_tree::ptree&> logging_subtree =
@@ -530,6 +529,10 @@ int main(int argc, char* argv[]) {
 
   // Get something we can use to fetch tiles
   valhalla::baldr::GraphReader reader(pt.get_child("mjolnir"));
+
+  // Get the maximum distance for time dependent routes
+  float max_timedep_distance =
+      pt.get<float>("service_limits.max_timedep_distance", kDefaultMaxTimeDependentDistance);
 
   auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -558,68 +561,18 @@ int main(int argc, char* argv[]) {
     mode_costing[static_cast<uint32_t>(mode)] = cost;
   }
 
-  // Find locations
-  auto t1 = std::chrono::high_resolution_clock::now();
-  std::shared_ptr<DynamicCost> cost = mode_costing[static_cast<uint32_t>(mode)];
-  const auto projections = Search(locations, reader, cost->GetEdgeFilter(), cost->GetNodeFilter());
-  std::vector<PathLocation> path_location;
-  for (const auto& loc : locations) {
-    try {
-      path_location.push_back(projections.at(loc));
-      // TODO: get transit level for transit costing
-      // TODO: if transit send a non zero radius
-    } catch (...) {
-      data.setSuccess("fail_invalid_origin");
-      data.log();
-      return EXIT_FAILURE;
-    }
-  }
-  // If we are testing connectivity
-  if (connectivity) {
-    std::unordered_map<size_t, size_t> color_counts;
-    connectivity_map_t connectivity_map(pt.get_child("mjolnir"));
-    auto colors =
-        connectivity_map.get_colors(TileHierarchy::levels().rbegin()->first, path_location.back(), 0);
-    for (auto color : colors) {
-      auto itr = color_counts.find(color);
-      if (itr == color_counts.cend()) {
-        color_counts[color] = 1;
-      } else {
-        ++itr->second;
-      }
-    }
+  // Find path locations (loki) for sources and targets
+  auto tw0 = std::chrono::high_resolution_clock::now();
+  loki_worker_t lw(pt);
+  auto tw1 = std::chrono::high_resolution_clock::now();
+  auto msw = std::chrono::duration_cast<std::chrono::milliseconds>(tw1 - tw0).count();
+  LOG_INFO("Location Worker construction took " + std::to_string(msw) + " ms");
 
-    // are all the locations in the same color regions
-    bool connected = false;
-    for (const auto& c : color_counts) {
-      if (c.second == locations.size()) {
-        connected = true;
-        break;
-      }
-    }
-    if (!connected) {
-      LOG_INFO("No tile connectivity between locations");
-      data.setSuccess("fail_no_connectivity");
-      data.log();
-      return EXIT_FAILURE;
-    }
-  }
-
-  // Normalize the edge scores
-  for (auto& correlated : path_location) {
-    auto minScoreEdge =
-        *std::min_element(correlated.edges.begin(), correlated.edges.end(),
-                          [](PathLocation::PathEdge i, PathLocation::PathEdge j) -> bool {
-                            return i.distance < j.distance;
-                          });
-
-    for (auto& e : correlated.edges) {
-      e.distance -= minScoreEdge.distance;
-    }
-  }
-  auto t2 = std::chrono::high_resolution_clock::now();
-  uint32_t msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-  LOG_INFO("Location Processing took " + std::to_string(msecs) + " ms");
+  auto tl0 = std::chrono::high_resolution_clock::now();
+  lw.route(request);
+  auto tl1 = std::chrono::high_resolution_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tl1 - tl0).count();
+  LOG_INFO("Location Processing took " + std::to_string(ms) + " ms");
 
   // Get the route
   AStarPathAlgorithm astar;
@@ -628,6 +581,13 @@ int main(int argc, char* argv[]) {
   TimeDepForward timedep_forward;
   TimeDepReverse timedep_reverse;
   for (uint32_t i = 0; i < n; i++) {
+    // Set origin and destination for this segment
+    valhalla::odin::Location origin = directions_options.locations(i);
+    valhalla::odin::Location dest = directions_options.locations(i + 1);
+
+    PointLL ll1(origin.ll().lng(), origin.ll().lat());
+    PointLL ll2(dest.ll().lng(), dest.ll().lat());
+
     // Choose path algorithm
     PathAlgorithm* pathalgorithm;
     if (routetype == "multimodal") {
@@ -636,41 +596,44 @@ int main(int argc, char* argv[]) {
       // Use time dependent algorithms if date time is present
       // TODO - this isn't really correct for multipoint routes but should allow
       // simple testing.
-      if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_depart_at) {
+      if (directions_options.has_date_time() && ll1.Distance(ll2) < max_timedep_distance &&
+          (directions_options.date_time_type() == DirectionsOptions_DateTimeType_depart_at ||
+           directions_options.date_time_type() == DirectionsOptions_DateTimeType_current)) {
         pathalgorithm = &timedep_forward;
-      } else if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_arrive_by) {
+      } else if (directions_options.date_time_type() == DirectionsOptions_DateTimeType_arrive_by &&
+                 ll1.Distance(ll2) < max_timedep_distance) {
         pathalgorithm = &timedep_reverse;
       } else {
-        // Use bidirectional except for possible trivial cases
+        // Use bidirectional except for trivial cases (same edge or connected edges)
         pathalgorithm = &bd;
-        for (auto& edge1 : path_location[i].edges) {
-          for (auto& edge2 : path_location[i + 1].edges) {
-            if (edge1.id == edge2.id) {
+        for (auto& edge1 : origin.path_edges()) {
+          for (auto& edge2 : dest.path_edges()) {
+            if (edge1.graph_id() == edge2.graph_id() ||
+                reader.AreEdgesConnected(GraphId(edge1.graph_id()), GraphId(edge2.graph_id()))) {
               pathalgorithm = &astar;
             }
           }
         }
       }
     }
-    bool using_astar = (pathalgorithm == &astar);
+    bool using_astar = (pathalgorithm == &astar || pathalgorithm == &timedep_forward ||
+                        pathalgorithm == &timedep_reverse);
+    bool using_bd = pathalgorithm == &bd;
 
     // Get the best path
     try {
-      valhalla::odin::Location src, sync;
-      PathLocation::toPBF(path_location[i], &src, reader);
-      PathLocation::toPBF(path_location[i + 1], &sync, reader);
-      trip_path = PathTest(reader, src, sync, pathalgorithm, mode_costing, mode, data, multi_run,
-                           iterations, using_astar, match_test, routetype);
+      trip_path = PathTest(reader, origin, dest, pathalgorithm, mode_costing, mode, data, multi_run,
+                           iterations, using_astar, using_bd, match_test, routetype);
     } catch (std::runtime_error& rte) { LOG_ERROR("trip_path not found"); }
 
     // If successful get directions
     if (trip_path.node().size() > 0) {
       // Try the the directions
-      t1 = std::chrono::high_resolution_clock::now();
+      auto t1 = std::chrono::high_resolution_clock::now();
       TripDirections trip_directions =
-          DirectionsTest(directions_options, trip_path, path_location[i], path_location[i + 1], data);
-      t2 = std::chrono::high_resolution_clock::now();
-      msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+          DirectionsTest(directions_options, trip_path, origin, dest, data);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      auto msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
       auto trip_time = trip_directions.summary().time();
       auto trip_length = trip_directions.summary().length() * 1609.344f;
@@ -679,42 +642,8 @@ int main(int argc, char* argv[]) {
       LOG_INFO("trip_length (meters)::" + std::to_string(trip_length));
       data.setSuccess("success");
     } else {
-      // Check if origins are unreachable
-      bool unreachable_origin = false;
-      for (auto& edge : path_location[i].edges) {
-        const GraphTile* tile = reader.GetGraphTile(edge.id);
-        const DirectedEdge* directededge = tile->directededge(edge.id);
-        auto ei = tile->edgeinfo(directededge->edgeinfo_offset());
-        if (directededge->unreachable()) {
-          LOG_INFO("Origin edge is unconnected: wayid = " + std::to_string(ei.wayid()));
-          unreachable_origin = true;
-        }
-        LOG_INFO("Origin wayId = " + std::to_string(ei.wayid()));
-      }
-
-      // Check if destinations are unreachable
-      bool unreachable_dest = false;
-      for (auto& edge : path_location[i + 1].edges) {
-        const GraphTile* tile = reader.GetGraphTile(edge.id);
-        const DirectedEdge* directededge = tile->directededge(edge.id);
-        auto ei = tile->edgeinfo(directededge->edgeinfo_offset());
-        if (directededge->unreachable()) {
-          LOG_INFO("Destination edge is unconnected: wayid = " + std::to_string(ei.wayid()));
-          unreachable_dest = true;
-        }
-        LOG_INFO("Destination wayId = " + std::to_string(ei.wayid()));
-      }
-
       // Route was unsuccessful
-      if (unreachable_origin && unreachable_dest) {
-        data.setSuccess("fail_unreachable_locations");
-      } else if (unreachable_origin) {
-        data.setSuccess("fail_unreachable_origin");
-      } else if (unreachable_dest) {
-        data.setSuccess("fail_unreachable_dest");
-      } else {
-        data.setSuccess("fail_no_route");
-      }
+      data.setSuccess("fail_no_route");
     }
   }
 
@@ -726,11 +655,14 @@ int main(int argc, char* argv[]) {
 
   // Time all stages for the stats file: location processing,
   // path computation, trip path building, and directions
-  t2 = std::chrono::high_resolution_clock::now();
-  msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t0).count();
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t0).count();
   LOG_INFO("Total time= " + std::to_string(msecs) + " ms");
   data.addRuntime(msecs);
   data.log();
+
+  // Shutdown protocol buffer library
+  google::protobuf::ShutdownProtobufLibrary();
 
   return EXIT_SUCCESS;
 }

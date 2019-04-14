@@ -30,11 +30,35 @@
 #endif // _MSC_VER
 #include <fcntl.h>
 
+// if we are on android
+#ifdef __ANDROID__
+// we didnt get a posix alias until 23
+#if __ANDROID_API__ < 23
+#define posix_madvise madvise
+#endif
+// we didnt get these posix aliases until M
+#if __ANDROID_API__ < __ANDROID_API_M__
+#define POSIX_MADV_NORMAL MADV_NORMAL
+#define POSIX_MADV_RANDOM MADV_RANDOM
+#define POSIX_MADV_SEQUENTIAL MADV_SEQUENTIAL
+#define POSIX_MADV_WILLNEED MADV_WILLNEED
+#define POSIX_MADV_DONTNEED MADV_DONTNEED
+#endif
+#endif
+
 #ifdef _MSC_VER
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
+#endif
+#ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN 1
+#endif
+#ifndef _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_DEPRECATE 1
+#endif
+#ifndef _CRT_NONSTDC_NO_WARNINGS
 #define _CRT_NONSTDC_NO_WARNINGS 1
+#endif
 #include <windows.h>
 
 #define PROT_READ 0x01
@@ -120,6 +144,21 @@ public:
   // unmap when done
   ~mem_map() {
     unmap();
+  }
+
+  // create a new file to map with a given size
+  void create(const std::string& new_file_name, size_t new_count, int advice = POSIX_MADV_NORMAL) {
+    auto target_size = new_count * sizeof(T);
+    struct stat s;
+    if (stat(new_file_name.c_str(), &s) || s.st_size != target_size) {
+      // open, create and truncate the file
+      std::ofstream f(new_file_name, std::ios::binary | std::ios::out | std::ios::trunc);
+      // seek to the new size and put a null char
+      f.seekp(new_count * sizeof(T) - 1);
+      f.write("\0", 1);
+    }
+    // map it
+    map(new_file_name, new_count, advice);
   }
 
   // reset to another file or another size
@@ -223,12 +262,12 @@ public:
 
     // crack open the file
     if (!*file) {
-      throw std::runtime_error(file_name + ": " + strerror(errno));
+      throw std::runtime_error("sequence: " + file_name + ": " + strerror(errno));
     }
     auto end = file->tellg();
     auto element_count = static_cast<std::streamoff>(std::ceil(end / sizeof(T)));
     if (end != static_cast<decltype(end)>(element_count * sizeof(T))) {
-      throw std::runtime_error("This file has an incorrect size for type");
+      throw std::runtime_error("sequence: " + file_name + " has an incorrect size for type");
     }
     write_buffer.reserve(write_buffer_size ? write_buffer_size : 1);
 
@@ -537,14 +576,20 @@ struct tar {
 
   tar(const std::string& tar_file, bool regular_files_only = true)
       : tar_file(tar_file), corrupt_blocks(0) {
-    // map the file
+    // get the file size
     struct stat s;
-    if (stat(tar_file.c_str(), &s) || s.st_size == 0 || (s.st_size % sizeof(header_t)) != 0) {
+    if (stat(tar_file.c_str(), &s))
+      throw std::runtime_error("(stat): " + tar_file + " " + strerror(errno));
+    if (s.st_size == 0 || (s.st_size % sizeof(header_t)) != 0) {
+      throw std::runtime_error(tar_file + "(stat): invalid archive size " +
+                               std::to_string(s.st_size) + " with header size " +
+                               std::to_string(sizeof(header_t)));
       return;
     }
-    try {
-      mm.map(tar_file, s.st_size);
-    } catch (...) { return; }
+
+    // map the file
+    mm.map(tar_file, s.st_size);
+
     // rip through the tar to see whats in it noting that most tars end with 2 empty blocks
     // but we can concatenate tars and get empty blocks in between so we'll just be pretty
     // lax about it and we'll count the ones we cant make sense of

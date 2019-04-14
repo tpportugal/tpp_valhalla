@@ -31,19 +31,6 @@ TimeDepReverse::~TimeDepReverse() {
   Clear();
 }
 
-// Get the timezone at the destination.
-int TimeDepReverse::GetDestinationTimezone(GraphReader& graphreader) {
-  if (edgelabels_rev_.size() == 0) {
-    return -1;
-  }
-  GraphId node = edgelabels_rev_[0].endnode();
-  const GraphTile* tile = graphreader.GetGraphTile(node);
-  if (tile == nullptr) {
-    return -1;
-  }
-  return tile->node(node)->timezone();
-}
-
 // Initialize prior to finding best path
 void TimeDepReverse::Init(const PointLL& origll, const PointLL& destll) {
   // Set the origin lat,lon (since this is reverse path) and cost factor
@@ -101,45 +88,22 @@ void TimeDepReverse::ExpandReverse(GraphReader& graphreader,
   // Adjust for time zone (if different from timezone at the destination).
   if (nodeinfo->timezone() != dest_tz_index_) {
     // Get the difference in seconds between the destination tz and current tz
-    int tz_diff = DateTime::timezone_diff(false, localtime,
-                                          DateTime::get_tz_db().from_index(nodeinfo->timezone()),
-                                          DateTime::get_tz_db().from_index(dest_tz_index_));
+    int tz_diff =
+        DateTime::timezone_diff(localtime, DateTime::get_tz_db().from_index(nodeinfo->timezone()),
+                                DateTime::get_tz_db().from_index(dest_tz_index_));
     localtime += tz_diff;
     seconds_of_week = DateTime::normalize_seconds_of_week(seconds_of_week + tz_diff);
   }
 
   // Expand from end node.
-  uint32_t max_shortcut_length = static_cast<uint32_t>(pred.distance() * 0.5f);
   GraphId edgeid(node.tileid(), node.level(), nodeinfo->edge_index());
   EdgeStatusInfo* es = edgestatus_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(nodeinfo->edge_index());
   for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++es) {
-    // Handle transition edges - expand from the end node of the transition
-    // (unless this is called from a transition).
-    if (directededge->trans_up()) {
-      if (!from_transition) {
-        hierarchy_limits_[node.level()].up_transition_count++;
-        ExpandReverse(graphreader, directededge->endnode(), pred, pred_idx, opp_pred_edge, true,
-                      seconds_of_week, localtime, destination, best_path);
-      }
-      continue;
-    } else if (directededge->trans_down()) {
-      if (!from_transition &&
-          !hierarchy_limits_[directededge->endnode().level()].StopExpanding(pred.distance())) {
-        ExpandReverse(graphreader, directededge->endnode(), pred, pred_idx, opp_pred_edge, true,
-                      seconds_of_week, localtime, destination, best_path);
-      }
-      continue;
-    }
-
-    // Skip shortcut edges for time dependent routes
-    if (directededge->is_shortcut()) {
-      continue;
-    }
-
-    // Skip this edge if permanently labeled (best path already found to this
-    // directed edge) or if no access for this mode.
-    if (es->set() == EdgeSet::kPermanent || !(directededge->reverseaccess() & access_mode_)) {
+    // Skip shortcut edges for time dependent routes. Also skip this edge if permanently labeled (best
+    // path already found to this directed edge) or if no access for this mode.
+    if (directededge->is_shortcut() || es->set() == EdgeSet::kPermanent ||
+        !(directededge->reverseaccess() & access_mode_)) {
       continue;
     }
 
@@ -161,8 +125,10 @@ void TimeDepReverse::ExpandReverse(GraphReader& graphreader,
       continue;
     }
 
+    bool has_traffic =
+        opp_pred_edge->predicted_speed() || opp_pred_edge->constrained_flow_speed() > 0;
     Cost tc = costing_->TransitionCostReverse(directededge->localedgeidx(), nodeinfo, opp_edge,
-                                              opp_pred_edge);
+                                              opp_pred_edge, has_traffic);
     Cost newcost = pred.cost() +
                    costing_->EdgeCost(opp_edge, t2->GetSpeed(directededge, edgeid, seconds_of_week));
     newcost.cost += tc.cost;
@@ -217,7 +183,7 @@ void TimeDepReverse::ExpandReverse(GraphReader& graphreader,
       if (t2 == nullptr) {
         continue;
       }
-      sortcost += astarheuristic_.Get(t2->node(directededge->endnode())->latlng(), dist);
+      sortcost += astarheuristic_.Get(t2->get_node_ll(directededge->endnode()), dist);
     }
 
     // Add edge label, add to the adjacency list and set edge status
@@ -226,6 +192,21 @@ void TimeDepReverse::ExpandReverse(GraphReader& graphreader,
                                  mode_, tc, (pred.not_thru_pruning() || !directededge->not_thru()));
     adjacencylist_->add(idx);
     *es = {EdgeSet::kTemporary, idx};
+  }
+
+  // Handle transitions - expand from the end node of each transition
+  if (!from_transition && nodeinfo->transition_count() > 0) {
+    const NodeTransition* trans = tile->transition(nodeinfo->transition_index());
+    for (uint32_t i = 0; i < nodeinfo->transition_count(); ++i, ++trans) {
+      if (trans->up()) {
+        hierarchy_limits_[node.level()].up_transition_count++;
+        ExpandReverse(graphreader, trans->endnode(), pred, pred_idx, opp_pred_edge, true,
+                      seconds_of_week, localtime, destination, best_path);
+      } else if (!hierarchy_limits_[trans->endnode().level()].StopExpanding(pred.distance())) {
+        ExpandReverse(graphreader, trans->endnode(), pred, pred_idx, opp_pred_edge, true,
+                      seconds_of_week, localtime, destination, best_path);
+      }
+    }
   }
 }
 
@@ -242,10 +223,10 @@ std::vector<PathInfo> TimeDepReverse::GetBestPath(odin::Location& origin,
   travel_type_ = costing_->travel_type();
   access_mode_ = costing_->access_mode();
 
-  // date_time must be set on the destination.
+  // date_time must be set on the destination. Log an error but allow routes for now.
   if (!destination.has_date_time()) {
     LOG_ERROR("TimeDepReverse called without time set on the destination location");
-    return {};
+    // return {};
   }
 
   // Initialize - create adjacency list, edgestatus support, A*, etc.
@@ -263,7 +244,12 @@ std::vector<PathInfo> TimeDepReverse::GetBestPath(odin::Location& origin,
   SetOrigin(graphreader, destination, origin);
 
   // Set the destination timezone
-  dest_tz_index_ = GetDestinationTimezone(graphreader);
+  dest_tz_index_ =
+      edgelabels_rev_.size() == 0 ? 0 : GetTimezone(graphreader, edgelabels_rev_[0].endnode());
+  if (dest_tz_index_ == 0) {
+    // TODO - do not throw exception at this time
+    LOG_ERROR("Could not get the timezone at the destination");
+  }
 
   // Update hierarchy limits
   ModifyHierarchyLimits(mindist, density);
@@ -416,7 +402,7 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
 
     // Get cost
     Cost cost = costing_->EdgeCost(directededge, tile->GetSpeed(directededge)) * edge.percent_along();
-    float dist = astarheuristic_.GetDistance(tile->node(opp_dir_edge->endnode())->latlng());
+    float dist = astarheuristic_.GetDistance(tile->get_node_ll(opp_dir_edge->endnode()));
 
     // We need to penalize this location based on its score (distance in meters from input)
     // We assume the slowest speed you could travel to cover that distance to start/end the route

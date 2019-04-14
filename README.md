@@ -19,12 +19,24 @@ Pull requests against master are still welcome, though one may need to pay extra
          ░
 
 
+### NOTICE
+Valhalla 3.0 is now available!
+This release (current master) makes changes to the Valhalla graph tile format. These tile changes are designed to make the tile data more efficient and flexible. However, these changes make Valhalla 3.0 incompatible with data from Valhalla 2.x. Also, any data built using Valhalla 3.0 will not be usable with Valhalla 2.x. See the [CHANGELOG](CHANGELOG.md) to get a brief description of the updates.
+
+------------
 Valhalla is an open source routing engine and accompanying libraries for use with OpenStreetMap data. Valhalla also includes tools like time+distance matrix computation, isochrones, elevation sampling, map matching and tour optimization (Travelling Salesman).
 
 License
 -------
 
 Valhalla uses the [MIT License](COPYING).  Avatar/logo by [Jordan](https://www.instagram.com/jaydraws.yt/?hl=en)
+
+Build Status
+------------
+
+| Linux/MacOs | Windows | Code Coverage |
+| ----------- | ------- | ------------- |
+| [![Circle CI](https://circleci.com/gh/valhalla/valhalla.svg?style=svg)](https://circleci.com/gh/valhalla/valhalla) | [![Build status](https://ci.appveyor.com/api/projects/status/6w7emulgcjweu457/branch/master?svg=true)](https://ci.appveyor.com/project/kevinkreiser/valhalla/branch/master) | [![codecov](https://codecov.io/gh/valhalla/valhalla/branch/master/graph/badge.svg)](https://codecov.io/gh/valhalla/valhalla) |
 
 Overview
 --------
@@ -104,6 +116,8 @@ curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | 
 nvm use install 10 && nvm use 10 # must use node 8.11.1 and up because of N-API
 npm install --ignore-scripts
 ```
+
+For instructions on installing Valhalla on Ubuntu 18.04.x see this [script](scripts/Ubuntu_Bionic_Install.sh).
 
 To install on macOS, you need to install its dependencies with [Homebrew](http://brew.sh):
 

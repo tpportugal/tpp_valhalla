@@ -1,5 +1,5 @@
+#include "baldr/rapidjson_utils.h"
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 
@@ -76,7 +76,7 @@ edge_t opposing(GraphReader& reader, const GraphTile* tile, const DirectedEdge* 
 
   // Check for invalid opposing index
   if (edge->opp_index() == kMaxEdgesPerNode) {
-    PointLL ll = t->node(edge->endnode())->latlng();
+    PointLL ll = t->get_node_ll(edge->endnode());
     LOG_ERROR("Invalid edge opp index = " + std::to_string(edge->opp_index()) +
               " LL = " + std::to_string(ll.lat()) + "," + std::to_string(ll.lng()));
     return {id, nullptr};
@@ -112,10 +112,9 @@ edge_t next(const std::unordered_map<GraphId, uint64_t>& tile_set,
     if (!ferries && candidate.e->use() == Use::kFerry) {
       continue;
     }
-    // TODO: dont skip transition edges but rather follow them to other levels
-    // skip these
-    if (candidate.e->trans_up() || candidate.e->use() == Use::kTransitConnection ||
-        candidate.e->trans_down() || candidate.e->IsTransitLine()) { // these should never happen
+    // TODO: follow transitions to other levels
+    // skip transit (should never happen)
+    if (candidate.e->use() == Use::kTransitConnection || candidate.e->IsTransitLine()) {
       continue;
     }
     // names have to match
@@ -203,7 +202,7 @@ int main(int argc, char* argv[]) {
 
   // parse the config
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config.c_str(), pt);
+  rapidjson::read_json(config.c_str(), pt);
 
   // configure logging
   valhalla::midgard::logging::Configure({{"type", "std_err"}, {"color", "true"}});
@@ -262,7 +261,7 @@ int main(int argc, char* argv[]) {
       ++set;
 
       // these wont have opposing edges that we care about
-      if (edge.e->trans_up() || edge.e->use() == Use::kTransitConnection || edge.e->trans_down() ||
+      if (edge.e->use() == Use::kTransitConnection ||
           edge.e->IsTransitLine()) { // these 2 should never happen
         continue;
       }

@@ -56,10 +56,9 @@ protected:
                                                            std::list<Maneuver>::iterator next_man,
                                                            bool start_man);
 
-  std::list<Maneuver>::iterator
-  CombineSameNameStraightManeuver(std::list<Maneuver>& maneuvers,
-                                  std::list<Maneuver>::iterator curr_man,
-                                  std::list<Maneuver>::iterator next_man);
+  std::list<Maneuver>::iterator CombineManeuvers(std::list<Maneuver>& maneuvers,
+                                                 std::list<Maneuver>::iterator curr_man,
+                                                 std::list<Maneuver>::iterator next_man);
 
   void CountAndSortExitSigns(std::list<Maneuver>& maneuvers);
 
@@ -88,6 +87,10 @@ protected:
   bool IncludeUnnamedPrevEdge(int node_index,
                               EnhancedTripPath_Edge* prev_edge,
                               EnhancedTripPath_Edge* curr_edge) const;
+
+  bool IsMergeManeuverType(Maneuver& maneuver,
+                           EnhancedTripPath_Edge* prev_edge,
+                           EnhancedTripPath_Edge* curr_edge) const;
 
   bool
   IsFork(int node_index, EnhancedTripPath_Edge* prev_edge, EnhancedTripPath_Edge* curr_edge) const;
@@ -139,6 +142,35 @@ protected:
                                        std::list<Maneuver>::iterator curr_man,
                                        std::list<Maneuver>::iterator next_man,
                                        bool start_man) const;
+
+  /**
+   * Returns true if the current and next ramp maneuvers are able to be combined,
+   * false otherwise.
+   *
+   * @param curr_man Current maneuver
+   * @param next_man Next maneuver
+   *
+   * @return true if the current and next ramp maneuvers are able to be combined,
+   * false otherwise.
+   */
+  bool AreRampManeuversCombinable(std::list<Maneuver>::iterator curr_man,
+                                  std::list<Maneuver>::iterator next_man) const;
+
+  /**
+   * Review each roundabout and if appropriate - set the roundabout name and roundabout exit name.
+   * The roundabout name shall be a non-route number street name that does not exist on the incoming
+   * and outgoing steps.
+   *
+   * @param maneuvers The list of maneuvers to process.
+   */
+  void ProcessRoundaboutNames(std::list<Maneuver>& maneuvers);
+
+  /**
+   * Iterate through the maneuvers and set the 'to stay on' attribute as needed.
+   *
+   * @param maneuvers The list of maneuvers to process.
+   */
+  void SetToStayOnAttribute(std::list<Maneuver>& maneuvers);
 
   /**
    * Enhance a signless interchange maneuver by adding the subsequent street name

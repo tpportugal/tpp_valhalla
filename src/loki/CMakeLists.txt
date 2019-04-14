@@ -19,6 +19,7 @@ valhalla_module(NAME loki
     PUBLIC
       ${VALHALLA_SOURCE_DIR}
       ${VALHALLA_SOURCE_DIR}/valhalla
+      ${VALHALLA_SOURCE_DIR}/third_party/date/include
     PRIVATE
       ${VALHALLA_SOURCE_DIR}/third_party/rapidjson/include
       ${CMAKE_BINARY_DIR}
@@ -26,4 +27,6 @@ valhalla_module(NAME loki
     valhalla::skadi
     valhalla::sif
     valhalla::proto
+    ${valhalla_protobuf_targets}
+    Boost::boost
     libprime_server)

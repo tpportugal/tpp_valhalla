@@ -1,7 +1,7 @@
+#include "baldr/rapidjson_utils.h"
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cmath>
 #include <cstdint>
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
 
   // parse the config
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config.c_str(), pt);
+  rapidjson::read_json(config.c_str(), pt);
 
   // configure logging
   boost::optional<boost::property_tree::ptree&> logging_subtree =
@@ -160,12 +160,8 @@ int main(int argc, char* argv[]) {
   CostFactory<DynamicCost> factory;
   factory.RegisterStandardCostingModels();
 
-  // Get type of route - this provides the costing method to use. // Remove the trailing '_'
-  // from 'auto_' - this is a work around since 'auto' is a keyword
+  // Get type of route - this provides the costing method to use.
   std::string routetype = valhalla::odin::Costing_Name(request.options.costing());
-  if (routetype.back() == '_') {
-    routetype.pop_back();
-  }
   LOG_INFO("routetype: " + routetype);
 
   // Get the costing method - pass the JSON configuration
@@ -197,14 +193,14 @@ int main(int argc, char* argv[]) {
   // Get the max matrix distances for construction of the CostMatrix and TimeDistanceMatrix classes
   std::unordered_map<std::string, float> max_matrix_distance;
   for (const auto& kv : pt.get_child("service_limits")) {
+    // Skip over any service limits that are not for a costing method
     if (kv.first == "max_avoid_locations" || kv.first == "max_reachability" ||
-        kv.first == "max_radius") {
+        kv.first == "max_radius" || kv.first == "max_timedep_distance" || kv.first == "skadi" ||
+        kv.first == "trace" || kv.first == "isochrone") {
       continue;
     }
-    if (kv.first != "skadi" && kv.first != "trace" && kv.first != "isochrone") {
-      max_matrix_distance.emplace(kv.first, pt.get<float>("service_limits." + kv.first +
-                                                          ".max_matrix_distance"));
-    }
+    max_matrix_distance.emplace(kv.first,
+                                pt.get<float>("service_limits." + kv.first + ".max_matrix_distance"));
   }
 
   if (max_matrix_distance.empty()) {
@@ -244,6 +240,7 @@ int main(int argc, char* argv[]) {
     CostMatrix matrix;
     res = matrix.SourceToTarget(request.options.sources(), request.options.targets(), reader,
                                 mode_costing, mode, max_distance);
+    matrix.Clear();
   }
   t1 = std::chrono::high_resolution_clock::now();
   ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
@@ -257,12 +254,16 @@ int main(int argc, char* argv[]) {
     TimeDistanceMatrix tdm;
     res = tdm.SourceToTarget(request.options.sources(), request.options.targets(), reader,
                              mode_costing, mode, max_distance);
+    tdm.Clear();
   }
   t1 = std::chrono::high_resolution_clock::now();
   ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
   avg = (static_cast<float>(ms) / static_cast<float>(iterations)) * 0.001f;
   LOG_INFO("TimeDistanceMatrix average time to compute: " + std::to_string(avg) + " sec");
   LogResults(optimize, request, res);
+
+  // Shutdown protocol buffer library
+  google::protobuf::ShutdownProtobufLibrary();
 
   return EXIT_SUCCESS;
 }

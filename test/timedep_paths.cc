@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
+#include "baldr/rapidjson_utils.h"
 #include "loki/worker.h"
 #include "midgard/logging.h"
 #include "sif/autocost.h"
 #include "thor/timedep.h"
 #include "thor/worker.h"
 #include "worker.h"
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 using namespace valhalla::thor;
@@ -26,7 +26,7 @@ boost::property_tree::ptree json_to_pt(const std::string& json) {
   std::stringstream ss;
   ss << json;
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(ss, pt);
+  rapidjson::read_json(ss, pt);
   return pt;
 }
 
@@ -53,10 +53,10 @@ rapidjson::Document to_document(const std::string& request) {
 // may want to do this in loki. At this point in thor the costing method
 // has not yet been constructed.
 const std::unordered_map<std::string, float> kMaxDistances = {
-    {"auto_", 43200.0f},     {"auto_shorter", 43200.0f}, {"bicycle", 7200.0f},
+    {"auto", 43200.0f},      {"auto_shorter", 43200.0f}, {"bicycle", 7200.0f},
     {"bus", 43200.0f},       {"hov", 43200.0f},          {"motor_scooter", 14400.0f},
     {"multimodal", 7200.0f}, {"pedestrian", 7200.0f},    {"transit", 14400.0f},
-    {"truck", 43200.0f},
+    {"truck", 43200.0f},     {"taxi", 43200.0f},
 };
 // a scale factor to apply to the score so that we bias towards closer results more
 constexpr float kDistanceScale = 10.f;
@@ -107,6 +107,7 @@ const auto config = json_to_pt(R"({
       "bicycle": {"max_distance": 500000.0,"max_locations": 50,"max_matrix_distance": 200000.0,"max_matrix_locations": 50},
       "bus": {"max_distance": 5000000.0,"max_locations": 50,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
       "hov": {"max_distance": 5000000.0,"max_locations": 20,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
+      "taxi": {"max_distance": 5000000.0,"max_locations": 20,"max_matrix_distance": 400000.0,"max_matrix_locations": 50},
       "isochrone": {"max_contours": 4,"max_distance": 25000.0,"max_locations": 1,"max_time": 120},
       "max_avoid_locations": 50,"max_radius": 200,"max_reachability": 100,
       "multimodal": {"max_distance": 500000.0,"max_locations": 50,"max_matrix_distance": 0.0,"max_matrix_locations": 0},

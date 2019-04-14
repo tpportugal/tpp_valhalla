@@ -1,4 +1,3 @@
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 #include <functional>
@@ -11,7 +10,6 @@
 #include "baldr/json.h"
 #include "baldr/rapidjson_utils.h"
 #include "baldr/turn.h"
-#include "exception.h"
 #include "midgard/aabb2.h"
 #include "midgard/encoded.h"
 #include "midgard/logging.h"
@@ -58,7 +56,7 @@ valhalla::baldr::json::MapPtr waypoint(const odin::Location& location,
   // Add hint. Goal is for the hint returned from a locate request to be able
   // to quickly find the edge and point along the edge in a route request.
   // Defer this - not currently used in OSRM.
-  waypoint->emplace("hint", std::string("TODO"));
+  // waypoint->emplace("hint", std::string("TODO"));
 
   // If the location was used for a tracepoint we trigger extra serialization
   if (tracepoint) {

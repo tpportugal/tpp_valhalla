@@ -1,8 +1,8 @@
 #include "test.h"
 #include <cstdint>
 
+#include "baldr/rapidjson_utils.h"
 #include "midgard/logging.h"
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <prime_server/http_protocol.hpp>
 #include <prime_server/prime_server.hpp>
@@ -177,8 +177,7 @@ const std::vector<std::pair<uint16_t, std::string>> valhalla_responses{
      R"({"error_code":153,"error":"Too many shape points:(102). The best paths shape limit is 100","status_code":400,"status":"Bad Request"})"}};
 
 const std::vector<http_request_t>
-    osrm_requests{http_request_t(GET,
-                                 R"(/route?json={"directions_options":{"format":"osrm"}})"),
+    osrm_requests{http_request_t(GET, R"(/route?json={"directions_options":{"format":"osrm"}})"),
                   http_request_t(POST, "/route", R"({"directions_options":{"format":"osrm"}})"),
                   http_request_t(GET,
                                  R"(/optimized_route?json={"directions_options":{"format":"osrm"}})"),
@@ -368,7 +367,7 @@ void start_service() {
       },
       "costing_options": { "auto": {}, "pedestrian": {} }
     })";
-  boost::property_tree::json_parser::read_json(json, config);
+  rapidjson::read_json(json, config);
 
   // service worker
   std::thread worker(valhalla::loki::run_service, config);

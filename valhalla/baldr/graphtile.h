@@ -8,23 +8,22 @@
 #include <valhalla/baldr/curler.h>
 #include <valhalla/baldr/datetime.h>
 #include <valhalla/baldr/directededge.h>
-#include <valhalla/baldr/edge_elevation.h>
 #include <valhalla/baldr/edgeinfo.h>
 #include <valhalla/baldr/graphid.h>
 #include <valhalla/baldr/graphtileheader.h>
 #include <valhalla/baldr/laneconnectivity.h>
 #include <valhalla/baldr/nodeinfo.h>
+#include <valhalla/baldr/nodetransition.h>
 #include <valhalla/baldr/predictedspeeds.h>
 #include <valhalla/baldr/sign.h>
-#include <valhalla/baldr/trafficassociation.h>
 #include <valhalla/baldr/transitdeparture.h>
 #include <valhalla/baldr/transitroute.h>
 #include <valhalla/baldr/transitschedule.h>
 #include <valhalla/baldr/transitstop.h>
 #include <valhalla/baldr/transittransfer.h>
 #include <valhalla/baldr/turnlanes.h>
-
 #include <valhalla/midgard/aabb2.h>
+#include <valhalla/midgard/logging.h>
 #include <valhalla/midgard/util.h>
 
 #include <memory>
@@ -139,6 +138,14 @@ public:
   }
 
   /**
+   * Convenience method to get the lat,lon of a node.
+   * @param  nodeid  GraphId of the node.
+   */
+  midgard::PointLL get_node_ll(const GraphId& nodeid) const {
+    return node(nodeid)->latlng(header()->base_ll());
+  }
+
+  /**
    * Get a pointer to a edge.
    * @param  edge  GraphId of the directed edge.
    * @return  Returns a pointer to the edge.
@@ -191,6 +198,37 @@ public:
   GraphId GetOpposingEdgeId(const DirectedEdge* edge) const {
     GraphId endnode = edge->endnode();
     return {endnode.tileid(), endnode.level(), node(endnode.id())->edge_index() + edge->opp_index()};
+  }
+
+  /**
+   * Get a pointer to a node transition.
+   * @param  idx  Index of the directed edge within the current tile.
+   * @return  Returns a pointer to the edge.
+   */
+  const NodeTransition* transition(const size_t idx) const {
+    if (idx < header_->transitioncount())
+      return &transitions_[idx];
+    throw std::runtime_error("GraphTile NodeTransition index out of bounds: " +
+                             std::to_string(header_->graphid().tileid()) + "," +
+                             std::to_string(header_->graphid().level()) + "," + std::to_string(idx) +
+                             " transitioncount= " + std::to_string(header_->transitioncount()));
+  }
+
+  /**
+   * Get an iterable set of transitions from a node in this tile
+   * @param  node  GraphId of the node from which the transitions leave
+   * @return returns an iterable collection of node transitions
+   */
+  iterable_t<const NodeTransition> GetNodeTransitions(const GraphId& node) const {
+    if (node.id() < header_->nodecount()) {
+      const auto& nodeinfo = nodes_[node.id()];
+      const auto* trans = transition(nodeinfo.transition_index());
+      return iterable_t<const NodeTransition>{trans, nodeinfo.transition_count()};
+    }
+    throw std::runtime_error(
+        "GraphTile NodeInfo index out of bounds: " + std::to_string(node.tileid()) + "," +
+        std::to_string(node.level()) + "," + std::to_string(node.id()) +
+        " nodecount= " + std::to_string(header_->nodecount()));
   }
 
   /**
@@ -377,22 +415,6 @@ public:
   midgard::iterable_t<GraphId> GetBin(size_t index) const;
 
   /**
-   * Get traffic segment(s) associated to this edge.
-   * @param   edge  GraphId of the directed edge.
-   * @return  Returns a list of traffic segment Ids and weights that associate
-   *          to this edge.
-   */
-  std::vector<TrafficSegment> GetTrafficSegments(const GraphId& edge) const;
-
-  /**
-   * Get traffic segment(s) associated to this edge.
-   * @param   idx  index of the directed edge within the tile.
-   * @return  Returns a list of traffic segment Ids and weights that associate
-   *          to this edge.
-   */
-  std::vector<TrafficSegment> GetTrafficSegments(const uint32_t idx) const;
-
-  /**
    * Get lane connections ending on this edge.
    * @param  idx  GraphId of the directed edge.
    * @return  Returns a list of lane connections ending on this edge.
@@ -437,7 +459,6 @@ public:
     if (de->predicted_speed()) {
       float spd = predictedspeeds_.speed(edgeid.id(), seconds_of_week);
       if (spd > 0.0f && spd < kMaxSpeedKph) {
-        LOG_INFO("Valid speed: " + std::to_string(static_cast<uint32_t>(spd)));
         return static_cast<uint32_t>(spd);
       } else if (spd < 0) {
         LOG_ERROR("Predicted speed = " + std::to_string(spd) +
@@ -447,20 +468,6 @@ public:
 
     // Fallback if no predicted speed
     return GetSpeed(de, seconds_of_week % kSecondsPerDay);
-  }
-
-  /**
-   * Get a pointer to a edge elevation data for the specified edge.
-   * @param  edge  GraphId of the directed edge.
-   * @return  Returns a pointer to the edge elevation data for the edge.
-   *          Returns nullptr if no elevation data exists.
-   */
-  const EdgeElevation* edge_elevation(const GraphId& edge) const {
-    if (header_->has_edge_elevation() && edge.id() < header_->directededgecount()) {
-      return &edge_elevation_[edge.id()];
-    } else {
-      return nullptr;
-    }
   }
 
   /**
@@ -488,13 +495,22 @@ protected:
   // Header information for the tile
   GraphTileHeader* header_;
 
-  // List of nodes. This is a fixed size structure so it can be
-  // indexed directly.
+  // List of nodes. Fixed size structure, indexed by Id within the tile.
   NodeInfo* nodes_;
 
-  // List of directed edges. This is a fixed size structure so it can be
-  // indexed directly.
+  // List of transitions between nodes on different levels. NodeInfo contains
+  // an index and count of transitions.
+  NodeTransition* transitions_;
+
+  // List of directed edges. Fixed size structure indexed by Id within the tile.
   DirectedEdge* directededges_;
+
+  // Extended directed edge records. For expansion. These are indexed by the same
+  // Id as the directed edge.
+  DirectedEdgeExt* ext_directededges_;
+
+  // Access restrictions, 1 or more per edge id
+  AccessRestriction* access_restrictions_;
 
   // Transit departures, many per index (indexed by directed edge index and
   // sorted by departure time)
@@ -512,11 +528,11 @@ protected:
   // Transit transfer records.
   TransitTransfer* transit_transfers_;
 
-  // Access restrictions, 1 or more per edge id
-  AccessRestriction* access_restrictions_;
-
   // Signs (indexed by directed edge index)
   Sign* signs_;
+
+  // Turn lanes (indexed by directed edge index)
+  TurnLanes* turnlanes_;
 
   // List of admins. This is a fixed size structure so it can be
   // indexed directly.
@@ -552,27 +568,11 @@ protected:
   // indices in the tile header.
   GraphId* edge_bins_;
 
-  // Traffic segment association. Count is the same as the directed edge count.
-  TrafficAssociation* traffic_segments_;
-
-  // Traffic chunks. Chunks are an array of uint64_t which combines a traffic
-  // segment Id (GraphId) and weight (combined int a single uint64_t).
-  TrafficChunk* traffic_chunks_;
-
-  // Number of bytes in the traffic chunk list
-  std::size_t traffic_chunk_size_;
-
   // Lane connectivity data.
   LaneConnectivity* lane_connectivity_;
 
   // Number of bytes in lane connectivity data.
   std::size_t lane_connectivity_size_;
-
-  // Edge elevation data
-  EdgeElevation* edge_elevation_;
-
-  // Turn lanes (indexed by directed edge index)
-  TurnLanes* turnlanes_;
 
   // Predicted speeds
   PredictedSpeeds predictedspeeds_;

@@ -2,10 +2,10 @@
 
 #include "statistics.h"
 
+#include "baldr/rapidjson_utils.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <future>
 #include <iostream>
@@ -212,7 +212,7 @@ bool IsUnroutableNode(const GraphTile& tile,
   size_t inbound = 0, outbound = 0;
   // Check all the edges from the current node and count inbound and outbound edges
   for (size_t i = 0; i < startnodeinfo.edge_count(); i++, diredge++) {
-    if (diredge->IsTransition() || diredge->shortcut() || diredge->use() == Use::kTransitConnection ||
+    if (diredge->shortcut() || diredge->use() == Use::kTransitConnection ||
         diredge->use() == Use::kEgressConnection || diredge->use() == Use::kPlatformConnection) {
       continue;
     }
@@ -228,7 +228,7 @@ bool IsUnroutableNode(const GraphTile& tile,
   // And it's not a dead end
   // Or it is a dead end, but is a high class road
   if (((!outbound && inbound >= 2) || (outbound >= 2 && !inbound))) {
-    rd.AddNode(startnodeinfo.latlng());
+    rd.AddNode(startnodeinfo.latlng(tile.header()->base_ll()));
     return true;
   }
 
@@ -469,7 +469,7 @@ void build(const boost::property_tree::ptree& pt,
         // Road Length and some variables for statistics
         float edge_length;
         bool valid_length = false;
-        if (!directededge->shortcut() && !directededge->trans_up() && !directededge->trans_down()) {
+        if (!directededge->shortcut()) {
           edge_length = directededge->length();
           roadlength += edge_length;
           valid_length = true;
@@ -612,7 +612,7 @@ int main(int argc, char** argv) {
 
   // check the type of input
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json(config_file_path.c_str(), pt);
+  rapidjson::read_json(config_file_path.c_str(), pt);
 
   // configure logging
   boost::optional<boost::property_tree::ptree&> logging_subtree =

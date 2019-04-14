@@ -2,15 +2,11 @@
 protobuf_generate_cpp(protobuff_srcs protobuff_hdrs
   directions.proto
   directions_options.proto
-  navigator.proto
   tripcommon.proto
   tripdirections.proto
   trippath.proto
-
   fileformat.proto
   osmformat.proto
-  segment.proto
-  tile.proto
   transit.proto
   transit_fetch.proto)
 
@@ -23,4 +19,4 @@ valhalla_module(NAME proto
     PUBLIC
       ${CMAKE_CURRENT_BINARY_DIR}
   DEPENDS
-    protobuf::libprotobuf)
+    ${valhalla_protobuf_targets})

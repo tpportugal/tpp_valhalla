@@ -1,8 +1,105 @@
-## Release Date: UNRELEASED Valhalla 3.0
+## Release Date: 2019-??-?? Valhalla 3.0.3
+* **Bug Fix**
+   * FIXED: Fixed a rare loop condition in route matcher (edge walking to match a trace).
+   * FIXED: Fixed VACUUM ANALYZE syntax issue.  [#1704](https://github.com/valhalla/valhalla/pull/1704)
+   * FIXED: Fixed the osrm maneuver type when a maneuver has the to_stay_on attribute set.  [#1714](https://github.com/valhalla/valhalla/pull/1714)
+   * FIXED: Fixed osrm compatibility mode attributes.  [#1716](https://github.com/valhalla/valhalla/pull/1716)
+   * FIXED: Fixed rotary/roundabout issues in Valhalla OSRM compatibility.  [#1727](https://github.com/valhalla/valhalla/pull/1727)
+   * FIXED: Fixed the destinations assignment for exit names in OSRM compatibility mode. [#1732](https://github.com/valhalla/valhalla/pull/1732)
+   * FIXED: Enhance merge maneuver type assignment. [#1735](https://github.com/valhalla/valhalla/pull/1735)
+   * FIXED: Fixed fork assignments and on ramps for OSRM compatibility mode. [#1738](https://github.com/valhalla/valhalla/pull/1738)
+   * FIXED: Fixed cardinal direction on reference names when forward/backward tag is present on relations. Fixes singly digitized roads with opposing directional modifiers. [#1741](https://github.com/valhalla/valhalla/pull/1741)
+   * FIXED: Fixed fork assignment and narrative logic when a highway ends and splits into multiple ramps. [#1742](https://github.com/valhalla/valhalla/pull/1742)
+   * FIXED: Do not use any avoid edges as origin or destination of a route, matrix, or isochrone. [#1745](https://github.com/valhalla/valhalla/pull/1745)
+   * ADDED: `remove` to `filesystem` namespace. [#1752](https://github.com/valhalla/valhalla/pull/1752)
+   * FIXED: Add leg summary and remove unused hint attribute for OSRM compatibility mode. [#1753](https://github.com/valhalla/valhalla/pull/1753)
+
+* **Enhancement**
+   * Add the ability to run valhalla_build_tiles in stages. Specify the begin_stage and end_stage as command line options. Also cleans up temporary files as the last stage in the pipeline.
+   * Add TaxiCost into auto costing options. 
+
+## Release Date: 2019-01-14 Valhalla 3.0.2
+* **Bug Fix**
+   * FIXED: Transit update - fix dow and exception when after midnight trips are normalized [#1682](https://github.com/valhalla/valhalla/pull/1682)
+   * FIXED: valhalla_convert_transit segfault - GraphTileBuilder has null GraphTileHeader [#1683](https://github.com/valhalla/valhalla/issues/1683)
+   * FIXED: Fix crash for trace_route with osrm serialization. Was passing shape rather than locations to the waypoint method.
+   * FIXED: Properly set driving_side based on data set in TripPath.
+   * FIXED: A bad bicycle route exposed an issue with bidirectional A* when the origin and destination edges are connected. Use A* in these cases to avoid requiring a high cost threshold in BD A*.
+   * FIXED: x86 and x64 data compatibility was fixed as the structures weren't aligned.
+   * FIXED: x86 tests were failing due mostly to floating point issues and the aforementioned structure misalignment.
+* **Enhancement**
+   * Add a durations list (delta time between each pair of trace points), a begin_time and a use_timestamp flag to trace_route requests. This allows using the input trace timestamps or durations plus the begin_time to compute elapsed time at each edge in the matched path (rather than using costing methods).
+   * Add support for polyline5 encoding for OSRM formatted output.
+* **Note**
+   * Isochrones and openlr are both noted as not working with release builds for x86 (32bit) platforms. We'll look at getting this fixed in a future release
+
+## Release Date: 2018-11-21 Valhalla 3.0.1
+* **Bug Fix**
+   * FIXED: Fixed a rare, but serious bug with bicycle costing. ferry_factor_ in bicycle costing shadowed the data member in the base dynamic cost class, leading to an unitialized variable. Occasionally, this would lead to negative costs which caused failures. [#1663](https://github.com/valhalla/valhalla/pull/1663)
+   * FIXED: Fixed use of units in OSRM compatibility mode. [#1662](https://github.com/valhalla/valhalla/pull/1662)
+
+## Release Date: 2018-11-21 Valhalla 3.0.0
+* **NOTE**
+   * This release changes the Valhalla graph tile formats. Tile data is incompatible with Valhalla 2.x builds, and code for 3.x is incompatible with data built for Valahalla 2.x versions. Valhalla tile sizes are slightly smaller (for datasets using elevation information the size savings is over 10%). In addition, there is increased flexibility for creating different variants of tiles to support different applications (e.g. bicycle only, or driving only).
+* **Enhancement**
+   * Remove the use of DirectedEdge for transitions between nodes on different hierarchy levels. A new structure, NodeTransition, is now used to transition to nodes on different hierarchy level. This saves space since only the end node GraphId is needed for the transitions (and DirectedEdge is a large data structure).
+   * Change the NodeInfo lat,lon to use an offset from the tile base lat,lon. This potentially allows higher precision than using float, but more importantly saves space and allows support for NodeTransitions as well as spare for future growth.
+   * Remove the EdgeElevation structure and max grade information into DirectedEdge and mean elevation into EdgeInfo. This saves space.
+   * Reduce wayid to 32 bits. This allows sufficient growth when using OpenStreetMap data and frees space in EdgeInfo (allows moving speed limit and mean elevation from other structures).
+   * Move name consistency from NodeInfo to DirectedEdge. This allows a more efficient lookup of name consistency.
+   * Update all path algorithms to use NodeTransition logic rather than special DirectedEdge transition types. This simplifies PathAlgorithms slightly and removes some conditional logic.
+   * Add an optional GraphFilter stage to tile building pipeline. This allows removal of edges and nodes based on access. This allows bicycle only, pedestrian only, or driving only datasets (or combinations) to be created - allowing smaller datasets for special purpose applications.
+* **Deprecate**
+   * Valhalla 3.0 removes support for OSMLR.
+
+## Release Date: 2018-11-20 Valhalla 2.7.2
+* **Enhancement**
+   * UPDATED: Added a configuration variable for max_timedep_distance. This is used in selecting the path algorithm and provides the maximum distance between locations when choosing a time dependent path algorithm (other than multi modal). Above this distance, bidirectional A* is used with no time dependencies.
+   * UPDATED: Remove transition edges from priority queue in Multimodal methods.
+   * UPDATED: Fully implement street names and exit signs with ability to identify route numbers. [#1635](https://github.com/valhalla/valhalla/pull/1635)
+* **Bug Fix**
+   * FIXED: A timed-turned restriction should not be applied when a non-timed route is executed.  [#1615](https://github.com/valhalla/valhalla/pull/1615)
+   * FIXED: Changed unordered_map to unordered_multimap for polys. Poly map can contain the same key but different multi-polygons. For example, islands for a country or timezone polygons for a country.
+   * FIXED: Fixed timezone db issue where TZIDs did not exist in the Howard Hinnant date time db that is used in the date_time class for tz indexes.  Added logic to create aliases for TZIDs based on https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+   * FIXED: Fixed the ramp turn modifiers for osrm compat [#1569](https://github.com/valhalla/valhalla/pull/1569)
+   * FIXED: Fixed the step geometry when using the osrm compat mode [#1571](https://github.com/valhalla/valhalla/pull/1571)
+   * FIXED: Fixed a data creation bug causing issues with A* routes ending on loops. [#1576](https://github.com/valhalla/valhalla/pull/1576)
+   * FIXED: Fixed an issue with a bad route where destination only was present. Was due to thresholds in bidirectional A*. Changed threshold to be cost based rather than number of iterations). [#1586](https://github.com/valhalla/valhalla/pull/1586)
+   * FIXED: Fixed an issue with destination only (private) roads being used in bicycle routes. Centralized some "base" transition cost logic in the base DynamicCost class. [#1587](https://github.com/valhalla/valhalla/pull/1587)
+   * FIXED: Remove extraneous ramp maneuvers [#1657](https://github.com/valhalla/valhalla/pull/1657)
+
+## Release Date: 2018-10-02 Valhalla 2.7.1
+* **Enhancement**
+   * UPDATED: Added date time support to forward and reverse isochrones. Add speed lookup (predicted speeds and/or free-flow or constrained flow speed) if date_time is present.
+   * UPDATED: Add timezone checks to multimodal routes and isochrones (updates localtime if the path crosses into a timezone different than the start location).
+* **Data Producer Update**
+   * UPDATED: Removed boost date time support from transit.  Now using the Howard Hinnant date library.
+* **Bug Fix**
+   * FIXED: Fixed a bug with shortcuts that leads to inconsistent routes depending on whether shortcuts are taken, different origins can lead to different paths near the destination. This fix also improves performance on long routes and matrices.
+   * FIXED: We were getting inconsistent results between departing at current date/time vs entering the current date/time.  This issue is due to the fact that the iso_date_time function returns the full iso date_time with the timezone offset (e.g., 2018-09-27T10:23-07:00 vs 2018-09-27T10:23). When we refactored the date_time code to use the new Howard Hinnant date library, we introduced this bug.
+   * FIXED: Increased the threshold in CostMatrix to address null time and distance values occuring for truck costing with locations near the max distance.
+
+## Release Date: 2018-09-13 Valhalla 2.7.0
 * **Enhancement**
    * UPDATED: Refactor to use the pbf options instead of the ptree config [#1428](https://github.com/valhalla/valhalla/pull/1428) This completes [1357](https://github.com/valhalla/valhalla/issues/1357)
-* **Request Parsing**
+   * UPDATED: Removed the boost/date_time dependency from baldr and odin. We added the Howard Hinnant date and time library as a submodule. [#1494](https://github.com/valhalla/valhalla/pull/1494)
+   * UPDATED: Fixed 'Drvie' typo [#1505](https://github.com/valhalla/valhalla/pull/1505) This completes [1504](https://github.com/valhalla/valhalla/issues/1504)
+   * UPDATED: Optimizations of GetSpeed for predicted speeds [1490](https://github.com/valhalla/valhalla/issues/1490)
+   * UPDATED: Isotile optimizations
+   * UPDATED: Added stats to predictive traffic logging
+   * UPDATED: resample_polyline - Breaks the polyline into equal length segments at a sample distance near the resolution. Break out of the loop through polyline points once we reach the specified number of samplesthen append the last
+polyline point.
+   * UPDATED: added android logging and uses a shared graph reader
+   * UPDATED: Do not run a second pass on long pedestrian routes that include a ferry (but succeed on first pass). This is a performance fix. Long pedestrian routes with A star factor based on ferry speed end up being very inefficient.
+* **Bug Fix**
+   * FIXED: A* destination only
    * FIXED: Fixed through locations weren't honored [#1449](https://github.com/valhalla/valhalla/pull/1449)
+
+
+## Release Date: 2018-08-02 Valhalla 3.0.0-rc.4
+* **Node Bindings**
+   * UPDATED: add some worker pool handling
+   [#1467](https://github.com/valhalla/valhalla/pull/1467)
 
 ## Release Date: 2018-08-02 Valhalla 3.0.0-rc.3
 * **Node Bindings**

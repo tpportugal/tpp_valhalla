@@ -11,20 +11,13 @@
 #include <string>
 #include <vector>
 
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/local_time/local_time.hpp>
-#include <boost/date_time/local_time/local_time_io.hpp>
-#include <boost/date_time/local_time/tz_database.hpp>
-#include <valhalla/baldr/datetime.h>
+#include "baldr/datetime.h"
 #include <valhalla/baldr/graphconstants.h>
-
-namespace {
-const boost::gregorian::date pivot_date_ =
-    boost::gregorian::from_undelimited_string(valhalla::baldr::kPivotDate);
-}
 
 namespace valhalla {
 namespace mjolnir {
+
+std::string to_iso_extended_string(const date::sys_days& d);
 
 /**
  * Get a formatted testing date.  Currently, next Tuesday @ 08:00.
@@ -40,10 +33,10 @@ std::string get_testing_date_time();
  * @param   dow_mask that this service runs.
  * @return  Returns the number of days.
  */
-uint64_t get_service_days(boost::gregorian::date& start_date,
-                          boost::gregorian::date& end_date,
-                          const uint32_t tile_date,
-                          const uint32_t dow_mask);
+uint64_t get_service_days(date::sys_days& start_date,
+                          date::sys_days& end_date,
+                          const uint32_t& tile_date,
+                          const uint32_t& dow_mask);
 /**
  * Adds a service day to the days.
  * @param   days supported by the gtfs feed/service
@@ -54,9 +47,9 @@ uint64_t get_service_days(boost::gregorian::date& start_date,
  *          is in the start and end date range.
  */
 uint64_t add_service_day(const uint64_t& days,
-                         const boost::gregorian::date& end_date,
-                         const uint32_t tile_date,
-                         const boost::gregorian::date& added_date);
+                         const date::sys_days& end_date,
+                         const uint32_t& tile_date,
+                         const date::sys_days& added_date);
 
 /**
  * Removes a service day to the days.
@@ -68,9 +61,16 @@ uint64_t add_service_day(const uint64_t& days,
  *          is in the start and end date range.
  */
 uint64_t remove_service_day(const uint64_t& days,
-                            const boost::gregorian::date& end_date,
-                            const uint32_t tile_date,
-                            const boost::gregorian::date& removed_date);
+                            const date::sys_days& end_date,
+                            const uint32_t& tile_date,
+                            const date::sys_days& removed_date);
+
+/**
+ * Shift all days by one in the futur, Friday 11th -> Saturday 12th
+ * @param   days supported by the gtfs feed/service
+ * @return  Returns the updated days.
+ */
+uint64_t shift_service_day(const uint64_t& days);
 
 /**
  * Get the month from the input string.Try to handle most inputs.

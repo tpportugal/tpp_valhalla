@@ -1,12 +1,13 @@
 #include "test.h"
 #include <cstdint>
-
-#include <valhalla/baldr/rapidjson_utils.h>
+#include <fstream>
 
 #include "baldr/graphid.h"
 #include "baldr/graphreader.h"
 #include "baldr/location.h"
+#include "baldr/rapidjson_utils.h"
 #include "baldr/tilehierarchy.h"
+#include "filesystem.h"
 #include "loki/search.h"
 #include "midgard/pointll.h"
 #include "midgard/vector2.h"
@@ -29,9 +30,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <fstream>
 
 #if !defined(VALHALLA_SOURCE_DIR)
 #define VALHALLA_SOURCE_DIR
@@ -49,10 +48,10 @@ namespace vo = valhalla::odin;
 
 /*
  * to regenerate the test tile you'll want to:
- *  add -I../mjolnir to the compile line
- *  add ../mjolnir/libvalhalla_mjolnir.la to the link line
  *  uncomment the define MAKE_TEST_TILES
  *  and delete the test tile: test/fake_tiles_astar/2/000/519/120.gph
+ *  run make check to generate the test file
+ *  copy the generated test file to test/fake_tiles_astar/2/000/519/120.gph
  */
 
 // #define MAKE_TEST_TILES
@@ -108,12 +107,19 @@ std::pair<vb::GraphId, vm::PointLL> g({tile_id.tileid(), tile_id.level(), 6}, {0
 void make_tile() {
   using namespace valhalla::mjolnir;
 
-  GraphTileBuilder tile(h, tile_id, false);
+  GraphTileBuilder tile(test_dir, tile_id, false);
+
+  // Set the base lat,lon of the tile
+  uint32_t id = tile_id.tileid();
+  const auto& tl = TileHierarchy::levels().rbegin();
+  PointLL base_ll = tl->second.tiles.Base(id);
+  tile.header_builder().set_base_ll(base_ll);
+
   uint32_t edge_index = 0;
 
   auto add_node = [&](const std::pair<vb::GraphId, vm::PointLL>& v, const uint32_t edge_count) {
     NodeInfo node_builder;
-    node_builder.set_latlng(v.second);
+    node_builder.set_latlng(base_ll, v.second);
     // node_builder.set_road_class(RoadClass::kSecondary);
     node_builder.set_access(vb::kAllAccess);
     node_builder.set_edge_count(edge_count);
@@ -136,7 +142,7 @@ void make_tile() {
     // make more complex edge geom so that there are 3 segments, affine combination doesnt properly
     // handle arcs but who cares
     uint32_t edge_info_offset =
-        tile.AddEdgeInfo(name, u.first, v.first, 123, shape, {std::to_string(name)}, add);
+        tile.AddEdgeInfo(name, u.first, v.first, 123, 0, 0, shape, {std::to_string(name)}, 0, add);
     edge_builder.set_edgeinfo_offset(edge_info_offset);
     tile.directededges().emplace_back(std::move(edge_builder));
   };
@@ -174,9 +180,9 @@ void make_tile() {
   tile.StoreTileData();
 
   GraphTileBuilder::tweeners_t tweeners;
-  GraphTile reloaded(h, tile_id);
-  auto bins = GraphTileBuilder::BinEdges(h, &reloaded, tweeners);
-  GraphTileBuilder::AddBins(h, &reloaded, bins);
+  GraphTile reloaded(test_dir, tile_id);
+  auto bins = GraphTileBuilder::BinEdges(&reloaded, tweeners);
+  GraphTileBuilder::AddBins(test_dir, &reloaded, bins);
 }
 #endif /* MAKE_TEST_TILES */
 
@@ -218,7 +224,7 @@ void assert_is_trivial_path(vo::Location& origin, vo::Location& dest, uint32_t e
   std::stringstream json;
   json << "{ \"tile_dir\": \"" VALHALLA_SOURCE_DIR "test/fake_tiles_astar\" }";
   bpt::ptree conf;
-  bpt::json_parser::read_json(json, conf);
+  rapidjson::read_json(json, conf);
 
   vb::GraphReader reader(conf);
   auto* tile = reader.GetGraphTile(tile_id);
@@ -315,7 +321,7 @@ void TestTrivialPathTriangle() {
 
 void trivial_path_no_uturns(const std::string& config_file) {
   boost::property_tree::ptree conf;
-  boost::property_tree::json_parser::read_json(config_file, conf);
+  rapidjson::read_json(config_file, conf);
 
   // setup and purge
   vb::GraphReader graph_reader(conf.get_child("mjolnir"));
@@ -326,16 +332,25 @@ void trivial_path_no_uturns(const std::string& config_file) {
     }
   }
 
+  // Set up the temporary (*.bin) files used during processing
   std::string ways_file = "test_ways_trivial.bin";
   std::string way_nodes_file = "test_way_nodes_trivial.bin";
+  std::string nodes_file = "test_nodes_trivial.bin";
+  std::string edges_file = "test_edges_trivial.bin";
   std::string access_file = "test_access_trivial.bin";
-  std::string restriction_file = "test_complex_restrictions_trivial.bin";
+  std::string cr_from_file = "test_from_complex_restrictions_trivial.bin";
+  std::string cr_to_file = "test_to_complex_restrictions_trivial.bin";
+
+  // Parse Utrecht OSM data
   auto osmdata =
       vj::PBFGraphParser::Parse(conf.get_child("mjolnir"),
                                 {VALHALLA_SOURCE_DIR "test/data/utrecht_netherlands.osm.pbf"},
-                                ways_file, way_nodes_file, access_file, restriction_file);
+                                ways_file, way_nodes_file, access_file, cr_from_file, cr_to_file);
+
   // Build the graph using the OSMNodes and OSMWays from the parser
-  vj::GraphBuilder::Build(conf, osmdata, ways_file, way_nodes_file, restriction_file);
+  vj::GraphBuilder::Build(conf, osmdata, ways_file, way_nodes_file, nodes_file, edges_file,
+                          cr_from_file, cr_to_file);
+
   // Enhance the local level of the graph. This adds information to the local
   // level that is usable across all levels (density, administrative
   // information (and country based attribution), edge transition logic, etc.
@@ -394,7 +409,11 @@ void trivial_path_no_uturns(const std::string& config_file) {
 
   boost::filesystem::remove(ways_file);
   boost::filesystem::remove(way_nodes_file);
+  boost::filesystem::remove(nodes_file);
+  boost::filesystem::remove(edges_file);
   boost::filesystem::remove(access_file);
+  boost::filesystem::remove(cr_from_file);
+  boost::filesystem::remove(cr_to_file);
 }
 
 void TestTrivialPathNoUturns() {

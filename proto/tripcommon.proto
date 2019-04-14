@@ -1,3 +1,5 @@
+syntax = "proto2";
+option optimize_for = LITE_RUNTIME;
 package valhalla.odin;
 
 message LatLng {
@@ -90,4 +92,9 @@ message TransitPlatformInfo {
   optional LatLng ll = 7;                  // Latitude, longitude of the transit stop
   optional string station_onestop_id = 8;  // Unique TPP station ID
   optional string station_name = 9;        // The station name of the platform
+}
+
+message StreetName {
+  optional string value = 1;          // The actual street name value, examples: I 95 North or Derry Street
+  optional bool is_route_number = 2;  // true if the street name is a reference route number such as: I 81 South or US 322 West
 }

@@ -16,6 +16,7 @@
 
 #include "baldr/complexrestriction.h"
 #include "baldr/datetime.h"
+#include "baldr/graphconstants.h"
 #include "baldr/tilehierarchy.h"
 #include "midgard/aabb2.h"
 #include "midgard/logging.h"
@@ -23,7 +24,7 @@
 #include "midgard/polyline2.h"
 #include "midgard/sequence.h"
 #include "midgard/tiles.h"
-#include "mjolnir/servicedays.h"
+#include "mjolnir/timeparsing.h"
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -34,7 +35,7 @@ namespace {
 // This value controls the initial size of the Id table. If this is exceeded
 // the table will be resized and a warning is generated (indicating we should
 // increase this value).
-constexpr uint64_t kMaxOSMNodeId = 5800000000;
+constexpr uint64_t kMaxOSMNodeId = 6500000000;
 
 // Absurd classification.
 constexpr uint32_t kAbsurdRoadClass = 777777;
@@ -99,8 +100,9 @@ public:
         ((highway_junction != results.end()) && (highway_junction->second == "motorway_junction"));
 
     // Create a new node and set its attributes
-    OSMNode n{osmid, static_cast<float>(lng), static_cast<float>(lat)};
-
+    OSMNode n;
+    n.set_id(osmid);
+    n.set_latlng(static_cast<float>(lng), static_cast<float>(lat));
     if (is_highway_junction) {
       n.set_type(NodeType::kMotorWayJunction);
     }
@@ -115,21 +117,24 @@ public:
         n.set_backward_signal(tag.second == "true" ? true : false);
       } else if (is_highway_junction && (tag.first == "exit_to")) {
         bool hasTag = (tag.second.length() ? true : false);
-        n.set_exit_to(hasTag);
         if (hasTag) {
-          osmdata_.node_exit_to[osmid] = tag.second;
+          // Add the name to the unique node names list and store its index in the OSM node
+          n.set_exit_to_index(osmdata_.node_names.index(tag.second));
+          ++osmdata_.node_exit_to_count;
         }
       } else if (is_highway_junction && (tag.first == "ref")) {
         bool hasTag = (tag.second.length() ? true : false);
-        n.set_ref(hasTag);
         if (hasTag) {
-          osmdata_.node_ref[osmid] = tag.second;
+          // Add the name to the unique node names list and store its index in the OSM node
+          n.set_ref_index(osmdata_.node_names.index(tag.second));
+          ++osmdata_.node_ref_count;
         }
       } else if (is_highway_junction && (tag.first == "name")) {
         bool hasTag = (tag.second.length() ? true : false);
-        n.set_name(hasTag);
         if (hasTag) {
-          osmdata_.node_name[osmid] = tag.second;
+          // Add the name to the unique node names list and store its index in the OSM node
+          n.set_name_index(osmdata_.node_names.index(tag.second));
+          ++osmdata_.node_name_count;
         }
       } else if (tag.first == "gate") {
         if (tag.second == "true") {
@@ -164,7 +169,7 @@ public:
           n.set_type(NodeType::kBorderControl);
         }
       } else if (tag.first == "access_mask") {
-        n.set_access_mask(std::stoi(tag.second));
+        n.set_access(std::stoi(tag.second));
       }
 
       /* TODO: payment type.
@@ -183,7 +188,7 @@ public:
     // find a node we need to update
     current_way_node_index_ = way_nodes_->find_first_of(OSMWayNode{{osmid}},
                                                         [](const OSMWayNode& a, const OSMWayNode& b) {
-                                                          return a.node.osmid == b.node.osmid;
+                                                          return a.node.osmid_ == b.node.osmid_;
                                                         },
                                                         current_way_node_index_);
     // we found the first one
@@ -192,7 +197,7 @@ public:
       OSMWayNode way_node;
       sequence<OSMWayNode>::iterator element = (*way_nodes_)[current_way_node_index_];
       while (current_way_node_index_ < way_nodes_->size() &&
-             (way_node = element = (*way_nodes_)[current_way_node_index_]).node.osmid == osmid) {
+             (way_node = element = (*way_nodes_)[current_way_node_index_]).node.osmid_ == osmid) {
         way_node.node = n;
         element = way_node;
         ++current_way_node_index_;
@@ -265,6 +270,11 @@ public:
       }
     }
 
+    if (osmid > kMaxOSMWayId) {
+      throw std::runtime_error("OSM way Id exceeds 32 bit maximum");
+    }
+    uint32_t wayid = static_cast<uint32_t>(osmid);
+
     // unsorted extracts are just plain nasty, so they can bugger off!
     if (osmid < last_way_) {
       throw std::runtime_error("Detected unsorted input data");
@@ -281,7 +291,7 @@ public:
       } else {
         ++osmdata_.node_count;
       }
-      way_nodes_->push_back({{node}, ways_->size(), i});
+      way_nodes_->push_back({{node}, static_cast<uint32_t>(ways_->size()), static_cast<uint32_t>(i)});
       shape_.set(node);
       // If this way is a loop (node occurs twice) we can make our lives way easier if we simply
       // split it up into multiple edges in the graph. If a problem is hard, avoid the problem!
@@ -319,10 +329,10 @@ public:
     std::string name;
 
     // Process tags
-    OSMWay w{osmid};
+    OSMWay w{wayid};
     w.set_node_count(nodes.size());
 
-    OSMAccess access{osmid};
+    OSMAccess access{wayid};
     bool has_user_tags = false;
 
     const auto& surface_exists = results.find("surface");
@@ -392,6 +402,9 @@ public:
       } else if (tag.first == "hov_tag") {
         access.set_hov_tag(true);
         has_user_tags = true;
+      } else if (tag.first == "taxi_tag") {
+        access.set_taxi_tag(true);
+        has_user_tags = true;
       } else if (tag.first == "motorroad_tag") {
         access.set_motorroad_tag(true);
         has_user_tags = true;
@@ -426,6 +439,8 @@ public:
         w.set_emergency_forward(tag.second == "true" ? true : false);
       } else if (tag.first == "hov_forward") {
         w.set_hov_forward(tag.second == "true" ? true : false);
+      } else if (tag.first == "taxi_forward") {
+        w.set_taxi_forward(tag.second == "true" ? true : false);
       } else if (tag.first == "moped_forward") {
         w.set_moped_forward(tag.second == "true" ? true : false);
       } else if (tag.first == "motorcycle_forward") {
@@ -442,6 +457,8 @@ public:
         w.set_emergency_backward(tag.second == "true" ? true : false);
       } else if (tag.first == "hov_backward") {
         w.set_hov_backward(tag.second == "true" ? true : false);
+      } else if (tag.first == "taxi_backward") {
+        w.set_taxi_backward(tag.second == "true" ? true : false);
       } else if (tag.first == "moped_backward") {
         w.set_moped_backward(tag.second == "true" ? true : false);
       } else if (tag.first == "motorcycle_backward") {
@@ -738,9 +755,9 @@ public:
       }
 
       else if (tag.first == "ref" && !tag.second.empty()) {
-        w.set_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_ref_index(osmdata_.name_offset_map.index(tag.second));
       } else if (tag.first == "int_ref" && !tag.second.empty()) {
-        w.set_int_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_int_ref_index(osmdata_.name_offset_map.index(tag.second));
 
       } else if (tag.first == "sac_scale") {
         std::string value = tag.second;
@@ -917,11 +934,11 @@ public:
       } else if (tag.first == "bike_network_mask") {
         w.set_bike_network(std::stoi(tag.second));
       } else if (tag.first == "bike_national_ref" && !tag.second.empty()) {
-        w.set_bike_national_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_bike_national_ref_index(osmdata_.name_offset_map.index(tag.second));
       } else if (tag.first == "bike_regional_ref" && !tag.second.empty()) {
-        w.set_bike_regional_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_bike_regional_ref_index(osmdata_.name_offset_map.index(tag.second));
       } else if (tag.first == "bike_local_ref" && !tag.second.empty()) {
-        w.set_bike_local_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_bike_local_ref_index(osmdata_.name_offset_map.index(tag.second));
 
       } else if (tag.first == "destination" && !tag.second.empty()) {
         w.set_destination_index(osmdata_.name_offset_map.index(tag.second));
@@ -933,10 +950,10 @@ public:
         w.set_destination_backward_index(osmdata_.name_offset_map.index(tag.second));
         w.set_exit(true);
       } else if (tag.first == "destination:ref" && !tag.second.empty()) {
-        w.set_destination_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_destination_ref_index(osmdata_.name_offset_map.index(tag.second));
         w.set_exit(true);
       } else if (tag.first == "destination:ref:to" && !tag.second.empty()) {
-        w.set_destination_ref_to_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_destination_ref_to_index(osmdata_.name_offset_map.index(tag.second));
         w.set_exit(true);
       } else if (tag.first == "destination:street" && !tag.second.empty()) {
         w.set_destination_street_index(osmdata_.name_offset_map.index(tag.second));
@@ -945,14 +962,14 @@ public:
         w.set_destination_street_to_index(osmdata_.name_offset_map.index(tag.second));
         w.set_exit(true);
       } else if (tag.first == "junction:ref" && !tag.second.empty()) {
-        w.set_junction_ref_index(osmdata_.ref_offset_map.index(tag.second));
+        w.set_junction_ref_index(osmdata_.name_offset_map.index(tag.second));
         w.set_exit(true);
       } else if (tag.first == "turn:lanes" || tag.first == "turn:lanes:forward") {
         // Turn lanes in the forward direction
-        w.set_fwd_turn_lanes_index(osmdata_.fwd_turn_lanes_map.index(tag.second));
+        w.set_fwd_turn_lanes_index(osmdata_.name_offset_map.index(tag.second));
       } else if (tag.first == "turn:lanes:backward") {
         // Turn lanes in the reverse direction
-        w.set_bwd_turn_lanes_index(osmdata_.bwd_turn_lanes_map.index(tag.second));
+        w.set_bwd_turn_lanes_index(osmdata_.name_offset_map.index(tag.second));
       }
     }
 
@@ -1049,7 +1066,7 @@ public:
     // Delete the name from from name field if it exists in the ref.
     if (!name.empty() && w.ref_index()) {
       std::vector<std::string> names = GetTagTokens(name);
-      std::vector<std::string> refs = GetTagTokens(osmdata_.ref_offset_map.name(w.ref_index()));
+      std::vector<std::string> refs = GetTagTokens(osmdata_.name_offset_map.name(w.ref_index()));
       bool bFound = false;
 
       std::string tmp;
@@ -1077,7 +1094,7 @@ public:
     }
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
-    if (loop_nodes_.size() != nodes.size() && w.use() == Use::kRoad &&
+    if (!w.roundabout() && loop_nodes_.size() != nodes.size() && w.use() == Use::kRoad &&
         w.road_class() > RoadClass::kTertiary) {
       w.set_use(Use::kCuldesac);
     }
@@ -1106,7 +1123,9 @@ public:
     last_relation_ = osmid;
 
     OSMRestriction restriction{};
-    uint64_t from_way_id = 0;
+    OSMRestriction to_restriction{};
+
+    uint32_t from_way_id = 0;
     bool isRestriction = false, isTypeRestriction = false, hasRestriction = false;
     bool isRoad = false, isRoute = false, isBicycle = false, isConnectivity = false;
     bool isConditional = false, has_multiple_times = false;
@@ -1114,7 +1133,7 @@ public:
 
     std::string network, ref, name, except;
     std::string from_lanes, from, to_lanes, to;
-    std::string condition;
+    std::string condition, direction;
     std::string hour_start, hour_end, day_start, day_end;
     uint32_t modes = 0;
 
@@ -1137,6 +1156,8 @@ public:
       } else if (tag.first == "restriction:conditional") {
         isConditional = true;
         condition = tag.second;
+      } else if (tag.first == "direction") {
+        direction = tag.second;
       } else if (tag.first == "network") {
         network = tag.second; // US:US
       } else if (tag.first == "ref") {
@@ -1242,7 +1263,7 @@ public:
     if (isBicycle && isRoute && !network.empty()) {
       OSMBike bike;
       const uint32_t name_index = osmdata_.name_offset_map.index(name);
-      const uint32_t ref_index = osmdata_.ref_offset_map.index(ref);
+      const uint32_t ref_index = osmdata_.name_offset_map.index(ref);
 
       // if the network is not of type lcn, rcn, ncn, or mtb don't save.
       if (!bike_network_mask) {
@@ -1266,37 +1287,30 @@ public:
       }
 
       std::string reference = net.at(1) + " " + ref; // US 51 or I 95
-
-      std::string direction;
-
+      bool bfound = false;
       for (const auto& member : members) {
-
         if (member.role.empty() || member.role == "forward" || member.role == "backward") {
           continue;
         }
-
         direction = member.role;
+        osmdata_.add_to_name_map(member.member_id, direction, reference);
+        bfound = true;
+      }
 
-        boost::algorithm::to_lower(direction);
-        direction[0] = std::toupper(direction[0]);
-
-        // TODO:  network=e-road with int_ref=E #
-        if ((boost::starts_with(direction, "North (") || boost::starts_with(direction, "South (") ||
-             boost::starts_with(direction, "East (") || boost::starts_with(direction, "West (")) ||
-            direction == "North" || direction == "South" || direction == "East" ||
-            direction == "West") {
-          auto iter = osmdata_.way_ref.find(member.member_id);
-          if (iter != osmdata_.way_ref.end()) {
-            osmdata_.way_ref[member.member_id] = iter->second + ";" + reference + "|" + direction;
-          } else {
-            osmdata_.way_ref[member.member_id] = reference + "|" + direction;
+      // direction is already set via a direction tag and not at the member level.
+      if (!direction.empty() && !bfound) {
+        for (const auto& member : members) {
+          if (member.role == "forward") {
+            osmdata_.add_to_name_map(member.member_id, direction, reference);
+          } else if (member.role == "backward") {
+            osmdata_.add_to_name_map(member.member_id, direction, reference, false);
           }
         }
       }
     } else if (isConnectivity && (!to_lanes.empty() || !to.empty()) &&
                (!from_lanes.empty() || !from.empty())) {
-      uint64_t from_way_id = 0;
-      uint64_t to_way_id = 0;
+      uint32_t from_way_id = 0;
+      uint32_t to_way_id = 0;
       for (const auto& member : members) {
         // from and to must be of type 1(way).
         if (member.role == "from" &&
@@ -1309,11 +1323,12 @@ public:
       }
 
       if (from_way_id && to_way_id) {
+        uint32_t to_idx = osmdata_.name_offset_map.index(std::max(to, to_lanes));
+        uint32_t from_idx = osmdata_.name_offset_map.index(std::max(from, from_lanes));
         osmdata_.lane_connectivity_map.insert(
             OSMLaneConnectivityMultiMap::value_type(to_way_id,
                                                     OSMLaneConnectivity{to_way_id, from_way_id,
-                                                                        std::max(to, to_lanes),
-                                                                        std::max(from, from_lanes)}));
+                                                                        to_idx, from_idx}));
       }
     } else if (isRestriction && hasRestriction) {
       std::vector<uint64_t> vias;
@@ -1435,7 +1450,13 @@ public:
             if (conditions.size()) {
               restriction.set_from(from_way_id);
               restriction.set_vias(vias);
-              osmdata_.end_map.insert(EndMap::value_type(restriction.to(), from_way_id));
+              // for bi-directional we need to create the restriction in reverse.  flip the to and
+              // from. also in order to avoid duplicate data in the from and to restrictions, we only
+              // need to store the mode, from, and to for the to_restrictions.
+              to_restriction.set_from(restriction.to());
+              to_restriction.set_to(from_way_id);
+              to_restriction.set_modes(restriction.modes());
+              complex_restrictions_to_->push_back(to_restriction);
             } else {
               return; // bad data
             }
@@ -1444,7 +1465,7 @@ public:
               std::vector<uint64_t> values = get_time_range(c);
               for (const auto& v : values) { // could have multiple time domains
                 restriction.set_time_domain(v);
-                complex_restrictions_->push_back(restriction);
+                complex_restrictions_from_->push_back(restriction);
               }
             }
             return;
@@ -1457,8 +1478,14 @@ public:
         if (vias.size()) {
           restriction.set_from(from_way_id);
           restriction.set_vias(vias);
-          osmdata_.end_map.insert(EndMap::value_type(restriction.to(), from_way_id));
-          complex_restrictions_->push_back(restriction);
+          // for bi-directional we need to create the restriction in reverse.  flip the to and from.
+          // also in order to avoid duplicate data in the from and to restrictions, we only need
+          // to store the mode, from, and to for the to_restrictions.
+          to_restriction.set_from(restriction.to());
+          to_restriction.set_to(from_way_id);
+          to_restriction.set_modes(restriction.modes());
+          complex_restrictions_to_->push_back(to_restriction);
+          complex_restrictions_from_->push_back(restriction);
         } else { // simple restriction
           osmdata_.restrictions.insert(RestrictionsMultiMap::value_type(from_way_id, restriction));
         }
@@ -1474,12 +1501,14 @@ public:
   void reset(sequence<OSMWay>* ways,
              sequence<OSMWayNode>* way_nodes,
              sequence<OSMAccess>* access,
-             sequence<OSMRestriction>* complex_restrictions) {
+             sequence<OSMRestriction>* complex_restrictions_from,
+             sequence<OSMRestriction>* complex_restrictions_to) {
     // reset the pointers (either null them out or set them to something valid)
     ways_.reset(ways);
     way_nodes_.reset(way_nodes);
     access_.reset(access);
-    complex_restrictions_.reset(complex_restrictions);
+    complex_restrictions_from_.reset(complex_restrictions_from);
+    complex_restrictions_to_.reset(complex_restrictions_to);
   }
 
   // Output list of wayids that have loops
@@ -1525,8 +1554,10 @@ public:
 
   // user entered access
   std::unique_ptr<sequence<OSMAccess>> access_;
-  // complex restrictions
-  std::unique_ptr<sequence<OSMRestriction>> complex_restrictions_;
+  // from complex restrictions
+  std::unique_ptr<sequence<OSMRestriction>> complex_restrictions_from_;
+  //  used to find out if a wayid is the to edge for a complex restriction
+  std::unique_ptr<sequence<OSMRestriction>> complex_restrictions_to_;
 };
 
 } // namespace
@@ -1539,7 +1570,8 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
                               const std::string& ways_file,
                               const std::string& way_nodes_file,
                               const std::string& access_file,
-                              const std::string& complex_restriction_file) {
+                              const std::string& complex_restriction_from_file,
+                              const std::string& complex_restriction_to_file) {
   // TODO: option 1: each one threads makes an osmdata and we splice them together at the end
   // option 2: synchronize around adding things to a single osmdata. will have to test to see
   // which is the least expensive (memory and speed). leaning towards option 2
@@ -1553,7 +1585,8 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
   callback.reset(new sequence<OSMWay>(ways_file, true),
                  new sequence<OSMWayNode>(way_nodes_file, true),
                  new sequence<OSMAccess>(access_file, true),
-                 new sequence<OSMRestriction>(complex_restriction_file, true));
+                 new sequence<OSMRestriction>(complex_restriction_from_file, true),
+                 new sequence<OSMRestriction>(complex_restriction_to_file, true));
   LOG_INFO("Parsing files: " + boost::algorithm::join(input_files, ", "));
 
   // hold open all the files so that if something else (like diff application)
@@ -1601,13 +1634,22 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
   LOG_INFO("Finished with " + std::to_string(osmdata.restrictions.size()) + " simple restrictions");
   LOG_INFO("Finished with " + std::to_string(osmdata.lane_connectivity_map.size()) +
            " lane connections");
-  callback.reset(nullptr, nullptr, nullptr, nullptr);
+  callback.reset(nullptr, nullptr, nullptr, nullptr, nullptr);
 
-  // we need to sort the complex restrictions so that we can easily find them.
+  // Sort complex restrictions. Keep this scoped so the file handles are closed when done sorting.
   LOG_INFO("Sorting complex restrictions by from id...");
   {
-    sequence<OSMRestriction> complex_restrictions(complex_restriction_file, false);
-    complex_restrictions.sort([](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
+    sequence<OSMRestriction> complex_restrictions_from(complex_restriction_from_file, false);
+    complex_restrictions_from.sort(
+        [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
+  }
+
+  // Sort complex restrictions. Keep this scoped so the file handles are closed when done sorting.
+  LOG_INFO("Sorting complex restrictions by to id...");
+  {
+    sequence<OSMRestriction> complex_restrictions_to(complex_restriction_to_file, false);
+    complex_restrictions_to.sort(
+        [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
   }
 
   // we need to sort the refs so that we can easily (sequentially) update them
@@ -1617,7 +1659,7 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
   {
     sequence<OSMWayNode> way_nodes(way_nodes_file, false);
     way_nodes.sort(
-        [](const OSMWayNode& a, const OSMWayNode& b) { return a.node.osmid < b.node.osmid; });
+        [](const OSMWayNode& a, const OSMWayNode& b) { return a.node.osmid_ < b.node.osmid_; });
   }
   LOG_INFO("Finished");
 
@@ -1628,7 +1670,8 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
   for (auto& file_handle : file_handles) {
     // each time we parse nodes we have to run through the way nodes file from the beginning because
     // because osm node ids are only sorted at the single pbf file level
-    callback.reset(nullptr, new sequence<OSMWayNode>(way_nodes_file, false), nullptr, nullptr);
+    callback.reset(nullptr, new sequence<OSMWayNode>(way_nodes_file, false), nullptr, nullptr,
+                   nullptr);
     callback.current_way_node_index_ = callback.last_node_ = callback.last_way_ =
         callback.last_relation_ = 0;
     OSMPBF::Parser::parse(file_handle,
@@ -1636,7 +1679,8 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
                                                         OSMPBF::Interest::CHANGESETS),
                           callback);
   }
-  callback.reset(nullptr, nullptr, nullptr, nullptr);
+  uint64_t max_osm_id = callback.last_node_;
+  callback.reset(nullptr, nullptr, nullptr, nullptr, nullptr);
   LOG_INFO("Finished with " + std::to_string(osmdata.osm_node_count) +
            " nodes contained in routable ways");
 
@@ -1654,17 +1698,23 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
     });
   }
 
-  LOG_INFO("Finished at changeset id " + std::to_string(osmdata.max_changeset_id_));
+  // Some OSM extracts do not have changeset Ids. For these set the max changeset Id
+  // to the max OSM Id
+  if (osmdata.max_changeset_id_ == 0) {
+    osmdata.max_changeset_id_ = max_osm_id;
+    LOG_INFO("Finished: max_osm_id " + std::to_string(osmdata.max_changeset_id_));
+  } else {
+    LOG_INFO("Finished: changeset id " + std::to_string(osmdata.max_changeset_id_));
+  }
 
   // Log some information about extra node information and names
-  LOG_DEBUG("Number of node refs (exits) = " + std::to_string(osmdata.node_ref.size()));
-  LOG_DEBUG("Number of node exit_to = " + std::to_string(osmdata.node_exit_to.size()));
-  LOG_DEBUG("Number of node names = " + std::to_string(osmdata.node_name.size()));
-  LOG_DEBUG("Number of way refs = " + std::to_string(osmdata.node_ref.size()));
-  LOG_DEBUG("Ref Names:");
-  osmdata.ref_offset_map.Log();
-  LOG_DEBUG("Names");
-  osmdata.name_offset_map.Log();
+  LOG_INFO("Number of nodes with refs (exits) = " + std::to_string(osmdata.node_ref_count));
+  LOG_INFO("Number of nodes with exit_to = " + std::to_string(osmdata.node_exit_to_count));
+  LOG_INFO("Number of nodes with names = " + std::to_string(osmdata.node_name_count));
+  LOG_INFO("Number of way refs = " + std::to_string(osmdata.way_ref.size()));
+  LOG_INFO("Number of reverse way refs = " + std::to_string(osmdata.way_ref_rev.size()));
+  LOG_INFO("Unique Node Strings (names, refs, etc.) = " + std::to_string(osmdata.node_names.Size()));
+  LOG_INFO("Unique Strings (names, refs, etc.) = " + std::to_string(osmdata.name_offset_map.Size()));
 
   // Return OSM data
   return osmdata;
